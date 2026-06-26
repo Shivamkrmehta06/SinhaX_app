@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/sinhax_card.dart';
@@ -42,21 +43,55 @@ class _LoginScreenState extends State<LoginScreen>
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
     setState(() => _isLoading = false);
-    Navigator.pushReplacementNamed(context, '/market-selection');
+    context.go('/market-selection');
+  }
+
+  void _handleBiometric() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Biometric auth not yet connected',
+          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.isDark(context)
+            ? AppColors.darkSurfaceAlt
+            : AppColors.textPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppColors.text1(context),
+          ),
+          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/landing'); } },
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 32),
+              const SizedBox(height: 12),
 
-              // Logo
+              // ── Logo ───────────────────────────────────────────────────────
               Column(
                 children: [
                   Container(
@@ -66,9 +101,9 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
+                          color: AppColors.primary.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
@@ -88,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen>
                     style: GoogleFonts.inter(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: AppColors.text1(context),
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -97,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen>
                     'AI-Powered Algorithmic Trading',
                     style: GoogleFonts.inter(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: AppColors.text2(context),
                     ),
                   ),
                 ],
@@ -105,16 +140,16 @@ class _LoginScreenState extends State<LoginScreen>
 
               const SizedBox(height: 32),
 
-              // Auth Card
+              // ── Auth Card ──────────────────────────────────────────────────
               SinhaXCard(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    // Toggle Tab
+                    // Toggle Tab Bar
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.cardAlt(context),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TabBar(
@@ -133,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         indicatorSize: TabBarIndicatorSize.tab,
                         labelColor: Colors.white,
-                        unselectedLabelColor: AppColors.textSecondary,
+                        unselectedLabelColor: AppColors.text2(context),
                         labelStyle: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -152,13 +187,11 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 24),
 
                     SizedBox(
-                      height: 420,
+                      height: 460,
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          // Login Tab
                           _buildLoginForm(),
-                          // Signup Tab
                           _buildSignupForm(),
                         ],
                       ),
@@ -171,21 +204,19 @@ class _LoginScreenState extends State<LoginScreen>
 
               // Back to Home
               TextButton.icon(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/landing',
-                  (route) => false,
-                ),
-                icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/landing'); } },
+                icon: Icon(Icons.arrow_back_rounded,
+                    size: 16, color: AppColors.text2(context)),
                 label: Text(
                   'Back to Home',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                 ),
-                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                style: TextButton.styleFrom(
+                    foregroundColor: AppColors.text2(context)),
               ),
 
               const SizedBox(height: 24),
@@ -196,64 +227,41 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  // ── Login Form ─────────────────────────────────────────────────────────────
+
   Widget _buildLoginForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Google button
+        // Google Sign-in
         _GoogleButton(onTap: _handleLogin),
         const SizedBox(height: 20),
 
         // Divider
-        Row(
-          children: [
-            const Expanded(child: Divider()),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'or continue with email',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.textTertiary,
-                ),
-              ),
-            ),
-            const Expanded(child: Divider()),
-          ],
-        ),
+        _OrDivider(label: 'or continue with email'),
         const SizedBox(height: 20),
 
-        // Email field
+        // Email
         _FieldLabel(label: 'Email Address'),
         const SizedBox(height: 6),
-        TextFormField(
+        _AuthField(
           controller: _emailController,
+          hint: 'you@example.com',
+          icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            hintText: 'you@example.com',
-            prefixIcon: Icon(Icons.email_outlined, size: 18, color: AppColors.textTertiary),
-          ),
         ),
         const SizedBox(height: 16),
 
-        // Password field
+        // Password
         _FieldLabel(label: 'Password'),
         const SizedBox(height: 6),
-        TextFormField(
+        _AuthField(
           controller: _passwordController,
+          hint: 'Enter your password',
+          icon: Icons.lock_outline_rounded,
           obscureText: _obscurePassword,
-          decoration: InputDecoration(
-            hintText: 'Enter your password',
-            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.textTertiary),
-            suffixIcon: GestureDetector(
-              onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-              child: Icon(
-                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                size: 18,
-                color: AppColors.textTertiary,
-              ),
-            ),
-          ),
+          onToggleObscure: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
         ),
 
         Align(
@@ -271,34 +279,44 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
 
-        // Login button
+        // Login Button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
             child: _isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                        strokeWidth: 2, color: Colors.white),
                   )
                 : Text(
                     'Login to SinhaX',
                     style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                        fontSize: 15, fontWeight: FontWeight.w700),
                   ),
           ),
         ),
+
+        const SizedBox(height: 12),
+
+        // Biometric Button
+        _BiometricButton(onTap: _handleBiometric),
       ],
     );
   }
+
+  // ── Sign Up Form ───────────────────────────────────────────────────────────
 
   Widget _buildSignupForm() {
     return SingleChildScrollView(
@@ -307,97 +325,79 @@ class _LoginScreenState extends State<LoginScreen>
         children: [
           _GoogleButton(onTap: _handleLogin),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'or sign up with email',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textTertiary),
-                ),
-              ),
-              const Expanded(child: Divider()),
-            ],
-          ),
+          _OrDivider(label: 'or sign up with email'),
           const SizedBox(height: 20),
 
+          // Full Name
           _FieldLabel(label: 'Full Name'),
           const SizedBox(height: 6),
-          TextFormField(
+          _AuthField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              hintText: 'Your full name',
-              prefixIcon: Icon(Icons.person_outline_rounded, size: 18, color: AppColors.textTertiary),
-            ),
+            hint: 'Your full name',
+            icon: Icons.person_outline_rounded,
           ),
           const SizedBox(height: 14),
 
+          // Email
           _FieldLabel(label: 'Email Address'),
           const SizedBox(height: 6),
-          TextFormField(
+          _AuthField(
             controller: _emailController,
+            hint: 'you@example.com',
+            icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              hintText: 'you@example.com',
-              prefixIcon: Icon(Icons.email_outlined, size: 18, color: AppColors.textTertiary),
-            ),
           ),
           const SizedBox(height: 14),
 
+          // Password
           _FieldLabel(label: 'Password'),
           const SizedBox(height: 6),
-          TextFormField(
+          _AuthField(
             controller: _passwordController,
+            hint: 'Create a strong password',
+            icon: Icons.lock_outline_rounded,
             obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              hintText: 'Create a strong password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.textTertiary),
-              suffixIcon: GestureDetector(
-                onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                child: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  size: 18,
-                  color: AppColors.textTertiary,
-                ),
-              ),
-            ),
+            onToggleObscure: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
           ),
           const SizedBox(height: 14),
 
+          // Confirm Password
           _FieldLabel(label: 'Confirm Password'),
           const SizedBox(height: 6),
-          TextFormField(
+          _AuthField(
             controller: _confirmPasswordController,
+            hint: 'Repeat your password',
+            icon: Icons.lock_outline_rounded,
             obscureText: _obscureConfirm,
-            decoration: InputDecoration(
-              hintText: 'Repeat your password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: AppColors.textTertiary),
-              suffixIcon: GestureDetector(
-                onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                child: Icon(
-                  _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  size: 18,
-                  color: AppColors.textTertiary,
-                ),
-              ),
-            ),
+            onToggleObscure: () =>
+                setState(() => _obscureConfirm = !_obscureConfirm),
           ),
           const SizedBox(height: 20),
 
+          // Create Account Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handleLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
               child: _isLoading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : Text(
                       'Create Account',
-                      style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.inter(
+                          fontSize: 15, fontWeight: FontWeight.w700),
                     ),
             ),
           ),
@@ -406,6 +406,8 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 }
+
+// ── Reusable sub-widgets ───────────────────────────────────────────────────────
 
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel({required this.label});
@@ -418,7 +420,103 @@ class _FieldLabel extends StatelessWidget {
       style: GoogleFonts.inter(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: AppColors.text1(context),
+      ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+            child: Divider(color: AppColors.borderColor(context), thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.text3(context),
+            ),
+          ),
+        ),
+        Expanded(
+            child: Divider(color: AppColors.borderColor(context), thickness: 1)),
+      ],
+    );
+  }
+}
+
+/// Theme-aware text field with optional password toggle.
+class _AuthField extends StatelessWidget {
+  const _AuthField({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType,
+    this.obscureText = false,
+    this.onToggleObscure,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final VoidCallback? onToggleObscure;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final fillColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final borderColor = AppColors.borderColor(context);
+    final hintColor = AppColors.text3(context);
+    final iconColor = AppColors.text3(context);
+    final textColor = AppColors.text1(context);
+
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      style: GoogleFonts.inter(fontSize: 14, color: textColor),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.inter(fontSize: 14, color: hintColor),
+        filled: true,
+        fillColor: fillColor,
+        prefixIcon: Icon(icon, size: 18, color: iconColor),
+        suffixIcon: onToggleObscure != null
+            ? GestureDetector(
+                onTap: onToggleObscure,
+                child: Icon(
+                  obscureText
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 18,
+                  color: iconColor,
+                ),
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       ),
     );
   }
@@ -436,12 +534,14 @@ class _GoogleButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: AppColors.card(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 1.5),
+          border:
+              Border.all(color: AppColors.borderColor(context), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withValues(alpha: 0.04),
+              color: Colors.black
+                  .withValues(alpha: AppColors.isDark(context) ? 0.2 : 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -450,7 +550,6 @@ class _GoogleButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Google G icon (using colors)
             _GoogleIcon(),
             const SizedBox(width: 10),
             Text(
@@ -458,7 +557,7 @@ class _GoogleButton extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
           ],
@@ -486,6 +585,51 @@ class _GoogleIcon extends StatelessWidget {
           fontWeight: FontWeight.bold,
           fontSize: 14,
           height: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
+/// Biometric login button shown below the primary login button.
+class _BiometricButton extends StatelessWidget {
+  const _BiometricButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.fingerprint_rounded,
+              size: 22,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Login with Biometrics',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
         ),
       ),
     );

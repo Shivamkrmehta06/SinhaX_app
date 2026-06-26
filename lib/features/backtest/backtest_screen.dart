@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/backtest_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/mini_chart.dart';
@@ -11,19 +13,16 @@ import '../../shared/widgets/status_chip.dart';
 // Backtest Screen
 // ---------------------------------------------------------------------------
 
-class BacktestScreen extends StatefulWidget {
+class BacktestScreen extends ConsumerStatefulWidget {
   const BacktestScreen({super.key});
 
   @override
-  State<BacktestScreen> createState() => _BacktestScreenState();
+  ConsumerState<BacktestScreen> createState() => _BacktestScreenState();
 }
 
-class _BacktestScreenState extends State<BacktestScreen>
+class _BacktestScreenState extends ConsumerState<BacktestScreen>
     with SingleTickerProviderStateMixin {
   // ── State ─────────────────────────────────────────────────────────────────
-  bool _hasResults = true;
-  bool _isRunning = false;
-
   String _selectedStrategy = 'Momentum Breakout';
   String _selectedSymbol = 'NIFTY 50';
   String _selectedTimeframe = '15 Min';
@@ -38,21 +37,21 @@ class _BacktestScreenState extends State<BacktestScreen>
   late AnimationController _runAnimController;
 
   // ── Static data ───────────────────────────────────────────────────────────
-  static const List<String> _strategies = [
+  static final List<String> _strategies = [
     'Momentum Breakout',
     'MACD Crossover',
     'RSI Reversal',
     'BTC Scalper',
   ];
 
-  static const List<String> _symbols = [
+  static final List<String> _symbols = [
     'NIFTY 50',
     'RELIANCE',
     'TCS',
     'BTC/USDT',
   ];
 
-  static const List<String> _timeframes = [
+  static final List<String> _timeframes = [
     '1 Min',
     '5 Min',
     '15 Min',
@@ -60,35 +59,13 @@ class _BacktestScreenState extends State<BacktestScreen>
     '1 Day',
   ];
 
-  // Equity curve – upward trend with realistic dips
-  static const List<double> _equityCurveData = [
-    10.0, 10.3, 10.8, 10.5, 11.1, 11.6, 11.3, 12.0, 12.4, 11.9,
-    12.7, 13.1, 12.8, 13.5, 14.0, 13.6, 14.3, 14.8, 14.4, 15.1,
-    15.6, 15.2, 15.8, 16.3, 15.9, 16.7, 17.2, 16.8, 17.5, 18.0,
-    17.5, 18.2, 18.8, 18.4, 19.0, 19.6, 19.1, 19.8, 20.4, 20.0,
-    20.7, 21.3, 20.8, 21.5, 22.1, 21.7, 22.4, 23.0, 22.6, 23.4,
-    24.0, 23.5, 24.2, 24.8, 24.4, 25.1, 25.7, 25.2, 25.9, 26.4,
-  ];
 
-  // Monthly returns for bar chart (some negative months for realism)
-  static const List<double> _monthlyReturns = [
-    3.2, 5.1, -1.8, 4.6, 6.3, -2.4,
-    7.1, 3.8, 5.9, -1.2, 4.4, 2.8,
-  ];
 
-  static const List<String> _monthLabels = [
+  static final List<String> _monthLabels = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 
-  // Sample trade log
-  static const List<_TradeEntry> _trades = [
-    _TradeEntry('NIFTY 50', '₹19,420', '₹19,680', '50', '+₹13,000', true),
-    _TradeEntry('NIFTY 50', '₹19,710', '₹19,540', '50', '-₹8,500', false),
-    _TradeEntry('NIFTY 50', '₹19,880', '₹20,310', '50', '+₹21,500', true),
-    _TradeEntry('NIFTY 50', '₹20,150', '₹20,490', '50', '+₹17,000', true),
-    _TradeEntry('NIFTY 50', '₹20,640', '₹20,510', '50', '-₹6,500', false),
-  ];
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
@@ -96,7 +73,7 @@ class _BacktestScreenState extends State<BacktestScreen>
     super.initState();
     _runAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: Duration(milliseconds: 1500),
     );
 
   }
@@ -109,20 +86,19 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  Future<void> _runBacktest() async {
-    setState(() {
-      _isRunning = true;
-      _hasResults = false;
-    });
+  Future<void> _runBacktest(bool isRunning) async {
+    if (isRunning) return;
     _runAnimController.repeat();
-    await Future.delayed(const Duration(seconds: 2));
+    await ref.read(backtestProvider.notifier).runBacktest(
+      strategy: _selectedStrategy,
+      symbol: _selectedSymbol,
+      timeframe: _selectedTimeframe,
+      riskPercent: _riskPercent,
+      start: _startDate,
+      end: _endDate,
+      capital: _capitalController.text,
+    );
     _runAnimController.stop();
-    if (mounted) {
-      setState(() {
-        _isRunning = false;
-        _hasResults = true;
-      });
-    }
   }
 
   Future<void> _pickStartDate() async {
@@ -150,11 +126,11 @@ class _BacktestScreenState extends State<BacktestScreen>
   Widget _datePickerTheme(BuildContext ctx, Widget? child) {
     return Theme(
       data: Theme.of(ctx).copyWith(
-        colorScheme: const ColorScheme.light(
+        colorScheme: ColorScheme.light(
           primary: AppColors.primary,
-          onPrimary: AppColors.white,
-          surface: AppColors.white,
-          onSurface: AppColors.textPrimary,
+          onPrimary: AppColors.card(context),
+          surface: AppColors.card(context),
+          onSurface: AppColors.text1(context),
         ),
       ),
       child: child!,
@@ -164,32 +140,33 @@ class _BacktestScreenState extends State<BacktestScreen>
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       appBar: _buildAppBar(),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        physics: BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Configuration ──────────────────────────────────────────────
-            _buildConfigCard(),
-            const SizedBox(height: 24),
+            _buildConfigCard(ref.watch(backtestProvider).isRunning),
+            SizedBox(height: 24),
 
             // ── Results ────────────────────────────────────────────────────
-            if (_hasResults) ...[
-              _buildResultsBanner(),
-              const SizedBox(height: 20),
-              _buildStatsGrid(),
-              const SizedBox(height: 20),
-              _buildEquityCurveCard(),
-              const SizedBox(height: 16),
-              _buildMonthlyReturnsCard(),
-              const SizedBox(height: 16),
-              _buildTradeLogCard(),
-              const SizedBox(height: 16),
-              _buildInterpretationCards(),
+            if (ref.watch(backtestProvider).result != null) ...[
+              _buildResultsBanner(ref.watch(backtestProvider).result!),
+              SizedBox(height: 20),
+              _buildStatsGrid(ref.watch(backtestProvider).result!),
+              SizedBox(height: 20),
+              _buildEquityCurveCard(ref.watch(backtestProvider).result!),
+              SizedBox(height: 16),
+              _buildMonthlyReturnsCard(ref.watch(backtestProvider).result!),
+              SizedBox(height: 16),
+              _buildTradeLogCard(ref.watch(backtestProvider).result!),
+              SizedBox(height: 16),
+              _buildInterpretationCards(ref.watch(backtestProvider).result!),
             ],
           ],
         ),
@@ -200,31 +177,31 @@ class _BacktestScreenState extends State<BacktestScreen>
   // ── AppBar ────────────────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.card(context),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
-      leading: const SizedBox.shrink(),
+      leading: SizedBox.shrink(),
       leadingWidth: 0,
       titleSpacing: 20,
       title: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: AppColors.primaryGradient,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.science_rounded,
-              color: AppColors.white,
+              color: AppColors.card(context),
               size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -233,14 +210,14 @@ class _BacktestScreenState extends State<BacktestScreen>
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               Text(
                 'Simulate strategies on historical data',
                 style: GoogleFonts.inter(
                   fontSize: 11,
-                  color: AppColors.textSecondary,
+                  color: AppColors.text2(context),
                 ),
               ),
             ],
@@ -248,16 +225,16 @@ class _BacktestScreenState extends State<BacktestScreen>
         ],
       ),
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: AppColors.border),
+        preferredSize: Size.fromHeight(1),
+        child: Container(height: 1, color: AppColors.borderColor(context)),
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: EdgeInsets.only(right: 16),
           child: IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.history_rounded,
-                color: AppColors.textSecondary),
+            icon: Icon(Icons.history_rounded,
+                color: AppColors.text2(context)),
             tooltip: 'History',
           ),
         ),
@@ -266,9 +243,9 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Configuration Card ────────────────────────────────────────────────────
-  Widget _buildConfigCard() {
+  Widget _buildConfigCard(bool isRunning) {
     return SinhaXCard(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -276,26 +253,26 @@ class _BacktestScreenState extends State<BacktestScreen>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
+                  color: AppColors.primarySurfaceColor(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.settings_rounded,
+                child: Icon(Icons.settings_rounded,
                     color: AppColors.primary, size: 18),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Text(
                 'Strategy Configuration',
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Strategy Dropdown
           _buildDropdownField(
@@ -305,7 +282,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             items: _strategies,
             onChanged: (v) => setState(() => _selectedStrategy = v!),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
           // Symbol & Timeframe row
           Row(
@@ -319,7 +296,7 @@ class _BacktestScreenState extends State<BacktestScreen>
                   onChanged: (v) => setState(() => _selectedSymbol = v!),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: _buildDropdownField(
                   label: 'Timeframe',
@@ -331,19 +308,19 @@ class _BacktestScreenState extends State<BacktestScreen>
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
           // Date Range
           _buildLabel('Date Range', Icons.date_range_rounded),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: _buildDateButton('Start', _startDate, _pickStartDate)),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(child: _buildDateButton('End', _endDate, _pickEndDate)),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
           // Risk Slider
           Row(
@@ -351,9 +328,9 @@ class _BacktestScreenState extends State<BacktestScreen>
             children: [
               _buildLabel('Risk Per Trade', Icons.shield_rounded),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
+                  color: AppColors.primarySurfaceColor(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -367,14 +344,14 @@ class _BacktestScreenState extends State<BacktestScreen>
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.border,
-              thumbColor: AppColors.white,
+              inactiveTrackColor: AppColors.borderColor(context),
+              thumbColor: AppColors.card(context),
               overlayColor: AppColors.primary.withValues(alpha: 0.12),
-              thumbShape: const RoundSliderThumbShape(
+              thumbShape: RoundSliderThumbShape(
                 enabledThumbRadius: 8,
                 elevation: 3,
               ),
@@ -393,55 +370,55 @@ class _BacktestScreenState extends State<BacktestScreen>
             children: [
               Text('0%',
                   style: GoogleFonts.inter(
-                      fontSize: 10, color: AppColors.textTertiary)),
+                      fontSize: 10, color: AppColors.text3(context))),
               Text('Conservative  ·  Moderate  ·  Aggressive',
                   style: GoogleFonts.inter(
-                      fontSize: 9, color: AppColors.textTertiary)),
+                      fontSize: 9, color: AppColors.text3(context))),
               Text('10%',
                   style: GoogleFonts.inter(
-                      fontSize: 10, color: AppColors.textTertiary)),
+                      fontSize: 10, color: AppColors.text3(context))),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
           // Starting Capital
           _buildLabel('Starting Capital', Icons.account_balance_rounded),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           TextFormField(
             controller: _capitalController,
             keyboardType: TextInputType.number,
             style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: AppColors.text1(context),
             ),
             decoration: InputDecoration(
               prefixText: '₹ ',
               prefixStyle: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: AppColors.text2(context),
               ),
               filled: true,
-              fillColor: AppColors.background,
-              contentPadding: const EdgeInsets.symmetric(
+              fillColor: AppColors.bg(context),
+              contentPadding: EdgeInsets.symmetric(
                   horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.borderColor(context)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.borderColor(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
+                    BorderSide(color: AppColors.primary, width: 1.5),
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Run Backtest Button
           SizedBox(
@@ -449,7 +426,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             height: 52,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
@@ -459,12 +436,12 @@ class _BacktestScreenState extends State<BacktestScreen>
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
               child: ElevatedButton(
-                onPressed: _isRunning ? null : _runBacktest,
+                onPressed: ref.watch(backtestProvider).isRunning ? null : () => _runBacktest(ref.watch(backtestProvider).isRunning),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -472,25 +449,25 @@ class _BacktestScreenState extends State<BacktestScreen>
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: _isRunning
+                child: isRunning
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(
+                          SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.white,
+                              color: AppColors.card(context),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Text(
                             'Running Simulation…',
                             style: GoogleFonts.inter(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.white,
+                              color: AppColors.card(context),
                             ),
                           ),
                         ],
@@ -498,15 +475,15 @@ class _BacktestScreenState extends State<BacktestScreen>
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.play_circle_rounded,
-                              color: AppColors.white, size: 20),
-                          const SizedBox(width: 8),
+                          Icon(Icons.play_circle_rounded,
+                              color: AppColors.card(context), size: 20),
+                          SizedBox(width: 8),
                           Text(
                             'Run Backtest',
                             style: GoogleFonts.inter(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.white,
+                              color: AppColors.card(context),
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -521,7 +498,9 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Results Banner ────────────────────────────────────────────────────────
-  Widget _buildResultsBanner() {
+  Widget _buildResultsBanner(BacktestResult result) {
+    final result = ref.watch(backtestProvider).result!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -532,23 +511,23 @@ class _BacktestScreenState extends State<BacktestScreen>
               GestureDetector(
                 onTap: () {},
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: AppColors.borderColor(context)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.file_download_outlined,
-                          size: 14, color: AppColors.textSecondary),
-                      const SizedBox(width: 4),
+                      Icon(Icons.file_download_outlined,
+                          size: 14, color: AppColors.text2(context)),
+                      SizedBox(width: 4),
                       Text(
                         'Export',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
+                          color: AppColors.text2(context),
                         ),
                       ),
                     ],
@@ -558,10 +537,10 @@ class _BacktestScreenState extends State<BacktestScreen>
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         GradientCard(
           gradientColors: const [Color(0xFF059669), Color(0xFF10B981)],
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           child: Row(
             children: [
               Expanded(
@@ -576,19 +555,19 @@ class _BacktestScreenState extends State<BacktestScreen>
                         color: Colors.white70,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
-                      '+28.4%',
+                      result.totalReturn,
                       style: GoogleFonts.inter(
                         fontSize: 36,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.white,
+                        color: AppColors.card(context),
                         letterSpacing: -1,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
-                      '+₹2,84,000 on ₹10,00,000 capital',
+                      result.totalReturnCapital,
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: Colors.white70,
@@ -599,10 +578,10 @@ class _BacktestScreenState extends State<BacktestScreen>
               ),
               Column(
                 children: [
-                  _buildBannerPill('247 Trades', Icons.swap_horiz_rounded),
-                  const SizedBox(height: 8),
+                  _buildBannerPill('${result.totalTrades} Trades', Icons.swap_horiz_rounded),
+                  SizedBox(height: 8),
                   _buildBannerPill('Jan – Dec 2023', Icons.calendar_today_rounded),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   _buildBannerPill(_selectedStrategy, Icons.auto_graph_rounded),
                 ],
               ),
@@ -615,7 +594,7 @@ class _BacktestScreenState extends State<BacktestScreen>
 
   Widget _buildBannerPill(String label, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
@@ -624,7 +603,7 @@ class _BacktestScreenState extends State<BacktestScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 11, color: Colors.white),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
             style: GoogleFonts.inter(
@@ -639,30 +618,32 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Stats Grid 2×4 ────────────────────────────────────────────────────────
-  Widget _buildStatsGrid() {
-    const stats = [
-      _StatItem('Win Rate', '72.4%', Icons.emoji_events_rounded,
+  Widget _buildStatsGrid(BacktestResult result) {
+    final result = ref.watch(backtestProvider).result!;
+
+    final stats = [
+      _StatItem('Win Rate', result.winRate, Icons.emoji_events_rounded,
           AppColors.success, true),
-      _StatItem('Profit Factor', '2.31', Icons.trending_up_rounded,
+      _StatItem('Profit Factor', result.profitFactor, Icons.trending_up_rounded,
           AppColors.primary, true),
-      _StatItem('Max Drawdown', '8.2%', Icons.trending_down_rounded,
+      _StatItem('Max Drawdown', result.maxDrawdown, Icons.trending_down_rounded,
           AppColors.error, false),
-      _StatItem('Sharpe Ratio', '1.84', Icons.bar_chart_rounded,
+      _StatItem('Sharpe Ratio', result.sharpeRatio, Icons.bar_chart_rounded,
           AppColors.primary, true),
-      _StatItem('Total Trades', '247', Icons.swap_horiz_rounded,
-          AppColors.textSecondary, true),
-      _StatItem('Avg R:R', '1 : 1.8', Icons.balance_rounded,
+      _StatItem('Total Trades', result.totalTrades, Icons.swap_horiz_rounded,
+          AppColors.text2(context), true),
+      _StatItem('Avg R:R', result.avgRR, Icons.balance_rounded,
           AppColors.warning, true),
-      _StatItem('Best Trade', '+₹38,400', Icons.arrow_circle_up_rounded,
+      _StatItem('Best Trade', result.bestTrade, Icons.arrow_circle_up_rounded,
           AppColors.success, true),
-      _StatItem('Worst Trade', '-₹8,200', Icons.arrow_circle_down_rounded,
+      _StatItem('Worst Trade', result.worstTrade, Icons.arrow_circle_down_rounded,
           AppColors.error, false),
     ];
 
     return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
+      physics: NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
@@ -684,9 +665,11 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Equity Curve ──────────────────────────────────────────────────────────
-  Widget _buildEquityCurveCard() {
+  Widget _buildEquityCurveCard(BacktestResult result) {
+    final result = ref.watch(backtestProvider).result!;
+
     return SinhaXCard(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -701,44 +684,44 @@ class _BacktestScreenState extends State<BacktestScreen>
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: AppColors.text1(context),
                       ),
                     ),
                     Text(
                       'Portfolio value over backtest period',
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: AppColors.text2(context),
                       ),
                     ),
                   ],
                 ),
               ),
-              const StatusChip(
+              StatusChip(
                 label: 'Simulated',
                 type: StatusType.info,
                 icon: Icons.science_rounded,
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           // Legend
           Row(
             children: [
               _buildLegendDot(AppColors.primary),
-              const SizedBox(width: 4),
+              SizedBox(width: 4),
               Text(
                 'Portfolio Value (₹ Lakhs)',
                 style: GoogleFonts.inter(
                   fontSize: 10,
-                  color: AppColors.textTertiary,
+                  color: AppColors.text3(context),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const LineChartWidget(
-            data: _equityCurveData,
+          SizedBox(height: 16),
+          LineChartWidget(
+            data: result.equityCurve,
             height: 200,
             showGrid: true,
             fillGradient: true,
@@ -749,9 +732,11 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Monthly Returns ───────────────────────────────────────────────────────
-  Widget _buildMonthlyReturnsCard() {
+  Widget _buildMonthlyReturnsCard(BacktestResult result) {
+    final result = ref.watch(backtestProvider).result!;
+
     return SinhaXCard(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -763,33 +748,33 @@ class _BacktestScreenState extends State<BacktestScreen>
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               Row(
                 children: [
                   _buildLegendDot(AppColors.success),
-                  const SizedBox(width: 3),
+                  SizedBox(width: 3),
                   Text('Profit',
                       style: GoogleFonts.inter(
-                          fontSize: 10, color: AppColors.textTertiary)),
-                  const SizedBox(width: 8),
+                          fontSize: 10, color: AppColors.text3(context))),
+                  SizedBox(width: 8),
                   _buildLegendDot(AppColors.error),
-                  const SizedBox(width: 3),
+                  SizedBox(width: 3),
                   Text('Loss',
                       style: GoogleFonts.inter(
-                          fontSize: 10, color: AppColors.textTertiary)),
+                          fontSize: 10, color: AppColors.text3(context))),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const BarChartWidget(
-            data: _monthlyReturns,
+          SizedBox(height: 16),
+          BarChartWidget(
+            data: result.monthlyReturns,
             height: 120,
             labels: _monthLabels,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -815,12 +800,12 @@ class _BacktestScreenState extends State<BacktestScreen>
             color: color,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           label,
           style: GoogleFonts.inter(
             fontSize: 9,
-            color: AppColors.textTertiary,
+            color: AppColors.text3(context),
           ),
         ),
       ],
@@ -828,15 +813,17 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Trade Log Table ───────────────────────────────────────────────────────
-  Widget _buildTradeLogCard() {
+  Widget _buildTradeLogCard(BacktestResult result) {
+    final result = ref.watch(backtestProvider).result!;
+
     return SinhaXCard(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
             title: 'Trade Log',
-            subtitle: '${_trades.length} sample trades shown',
+            subtitle: '${result.trades.length} sample trades shown',
             action: GestureDetector(
               onTap: () {},
               child: Text(
@@ -849,23 +836,23 @@ class _BacktestScreenState extends State<BacktestScreen>
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // Table Header
           _buildTableHeader(),
-          const SizedBox(height: 8),
-          Container(height: 1, color: AppColors.border),
-          const SizedBox(height: 4),
+          SizedBox(height: 8),
+          Container(height: 1, color: AppColors.borderColor(context)),
+          SizedBox(height: 4),
 
           // Table Rows
-          ...List.generate(_trades.length, (i) {
+          ...List.generate(result.trades.length, (i) {
             return Column(
               children: [
-                _buildTradeRow(_trades[i]),
-                if (i < _trades.length - 1)
+                _buildTradeRow(result.trades[i]),
+                if (i < result.trades.length - 1)
                   Container(
                       height: 1,
-                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      margin: EdgeInsets.symmetric(vertical: 2),
                       color: AppColors.divider),
               ],
             );
@@ -887,7 +874,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             style: GoogleFonts.inter(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: AppColors.textTertiary,
+              color: AppColors.text3(context),
               letterSpacing: 0.5,
             ),
             textAlign: i == headers.length - 1 ? TextAlign.end : TextAlign.start,
@@ -897,9 +884,9 @@ class _BacktestScreenState extends State<BacktestScreen>
     );
   }
 
-  Widget _buildTradeRow(_TradeEntry t) {
+  Widget _buildTradeRow(TradeEntry t) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -909,7 +896,7 @@ class _BacktestScreenState extends State<BacktestScreen>
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
           ),
@@ -918,7 +905,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             child: Text(
               t.entry,
               style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.textSecondary),
+                  fontSize: 12, color: AppColors.text2(context)),
             ),
           ),
           Expanded(
@@ -926,7 +913,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             child: Text(
               t.exit,
               style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.textSecondary),
+                  fontSize: 12, color: AppColors.text2(context)),
             ),
           ),
           Expanded(
@@ -934,7 +921,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             child: Text(
               t.qty,
               style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.textSecondary),
+                  fontSize: 12, color: AppColors.text2(context)),
             ),
           ),
           Expanded(
@@ -955,7 +942,7 @@ class _BacktestScreenState extends State<BacktestScreen>
   }
 
   // ── Interpretation Cards ──────────────────────────────────────────────────
-  Widget _buildInterpretationCards() {
+  Widget _buildInterpretationCards(BacktestResult result) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -964,10 +951,10 @@ class _BacktestScreenState extends State<BacktestScreen>
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: AppColors.text1(context),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _buildInterpCard(
           icon: Icons.verified_rounded,
           iconColor: AppColors.success,
@@ -981,7 +968,7 @@ class _BacktestScreenState extends State<BacktestScreen>
             '• Sharpe ratio of 1.84 reflects excellent risk-adjusted returns.',
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _buildInterpCard(
           icon: Icons.warning_amber_rounded,
           iconColor: AppColors.warning,
@@ -995,11 +982,11 @@ class _BacktestScreenState extends State<BacktestScreen>
             '• Consider reducing risk to 1% to lower worst-case drawdown further.',
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _buildInterpCard(
           icon: Icons.lightbulb_rounded,
           iconColor: AppColors.primary,
-          bgColor: AppColors.primarySurface,
+          bgColor: AppColors.primarySurfaceColor(context),
           title: 'Optimization Tips',
           badge: 'Insights',
           badgeType: StatusType.info,
@@ -1023,43 +1010,43 @@ class _BacktestScreenState extends State<BacktestScreen>
     required List<String> lines,
   }) {
     return SinhaXCard(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: iconColor, size: 18),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                   ),
                 ),
               ),
               StatusChip(label: badge, type: badgeType),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...lines.map(
             (line) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: EdgeInsets.only(bottom: 6),
               child: Text(
                 line,
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: AppColors.text2(context),
                   height: 1.5,
                 ),
               ),
@@ -1082,7 +1069,7 @@ class _BacktestScreenState extends State<BacktestScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel(label, icon),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: value,
           isExpanded: true,
@@ -1094,7 +1081,7 @@ class _BacktestScreenState extends State<BacktestScreen>
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
+                        color: AppColors.text1(context),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1103,26 +1090,26 @@ class _BacktestScreenState extends State<BacktestScreen>
           onChanged: onChanged,
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.background,
+            fillColor: AppColors.bg(context),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: AppColors.borderColor(context)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: AppColors.borderColor(context)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
+                  BorderSide(color: AppColors.primary, width: 1.5),
             ),
           ),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: AppColors.textSecondary),
-          dropdownColor: AppColors.white,
+          icon: Icon(Icons.keyboard_arrow_down_rounded,
+              color: AppColors.text2(context)),
+          dropdownColor: AppColors.card(context),
           borderRadius: BorderRadius.circular(12),
         ),
       ],
@@ -1134,17 +1121,17 @@ class _BacktestScreenState extends State<BacktestScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: AppColors.bg(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_month_rounded,
+            Icon(Icons.calendar_month_rounded,
                 size: 15, color: AppColors.primary),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1153,7 +1140,7 @@ class _BacktestScreenState extends State<BacktestScreen>
                     type,
                     style: GoogleFonts.inter(
                       fontSize: 9,
-                      color: AppColors.textTertiary,
+                      color: AppColors.text3(context),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1163,7 +1150,7 @@ class _BacktestScreenState extends State<BacktestScreen>
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: AppColors.text1(context),
                     ),
                   ),
                 ],
@@ -1178,14 +1165,14 @@ class _BacktestScreenState extends State<BacktestScreen>
   Widget _buildLabel(String text, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 13, color: AppColors.textSecondary),
-        const SizedBox(width: 5),
+        Icon(icon, size: 13, color: AppColors.text2(context)),
+        SizedBox(width: 5),
         Text(
           text,
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: AppColors.text2(context),
           ),
         ),
       ],
@@ -1214,7 +1201,7 @@ class _BacktestScreenState extends State<BacktestScreen>
 // ---------------------------------------------------------------------------
 
 class _StatItem {
-  const _StatItem(this.label, this.value, this.icon, this.color, this.positive);
+  _StatItem(this.label, this.value, this.icon, this.color, this.positive);
   final String label;
   final String value;
   final IconData icon;
@@ -1222,13 +1209,3 @@ class _StatItem {
   final bool positive;
 }
 
-class _TradeEntry {
-  const _TradeEntry(
-      this.symbol, this.entry, this.exit, this.qty, this.pnl, this.positive);
-  final String symbol;
-  final String entry;
-  final String exit;
-  final String qty;
-  final String pnl;
-  final bool positive;
-}

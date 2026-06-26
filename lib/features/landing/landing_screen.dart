@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -56,8 +57,10 @@ class _LandingScreenState extends State<LandingScreen>
 
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       body: FadeTransition(
         opacity: _fadeIn,
         child: CustomScrollView(
@@ -65,8 +68,9 @@ class _LandingScreenState extends State<LandingScreen>
             // App Bar
             SliverAppBar(
               pinned: true,
-              backgroundColor: AppColors.white,
+              backgroundColor: AppColors.card(context),
               elevation: 0,
+              surfaceTintColor: Colors.transparent,
               title: Row(
                 children: [
                   ClipRRect(
@@ -84,7 +88,7 @@ class _LandingScreenState extends State<LandingScreen>
                     style: GoogleFonts.inter(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: AppColors.text1(context),
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -92,7 +96,7 @@ class _LandingScreenState extends State<LandingScreen>
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  onPressed: () => context.go('/login'),
                   child: Text(
                     'Login',
                     style: GoogleFonts.inter(
@@ -104,35 +108,38 @@ class _LandingScreenState extends State<LandingScreen>
                 ),
                 const SizedBox(width: 8),
               ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(36),
-                child: const MarketTickerBanner(),
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(36),
+                child: MarketTickerBanner(),
               ),
             ),
 
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  // Hero Section
+                  // ── Hero Section ──────────────────────────────────────────
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(24, 40, 24, 40),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF1E3A8A), Color(0xFF2563EB), Color(0xFF3B82F6)],
+                        colors: AppColors.heroGradient(context),
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Pill badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -158,6 +165,8 @@ class _LandingScreenState extends State<LandingScreen>
                           ),
                         ),
                         const SizedBox(height: 20),
+
+                        // Tagline
                         Text(
                           AppConstants.appTagline,
                           style: GoogleFonts.inter(
@@ -169,6 +178,8 @@ class _LandingScreenState extends State<LandingScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
+
+                        // Subtitle
                         Text(
                           'Harness the power of AI to execute precise algorithmic trading strategies across Indian markets, Crypto, and Forex. Trade smarter, not harder.',
                           style: GoogleFonts.inter(
@@ -179,15 +190,18 @@ class _LandingScreenState extends State<LandingScreen>
                           ),
                         ),
                         const SizedBox(height: 28),
+
+                        // CTA Buttons
                         Row(
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => Navigator.pushNamed(context, '/login'),
+                                onPressed: () => context.go('/login'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: AppColors.primary,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 14),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -205,13 +219,13 @@ class _LandingScreenState extends State<LandingScreen>
                             const SizedBox(width: 12),
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/home');
-                                },
+                                onPressed: () => context.go('/home'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white54, width: 1.5),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: const BorderSide(
+                                      color: Colors.white54, width: 1.5),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 14),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -232,7 +246,7 @@ class _LandingScreenState extends State<LandingScreen>
                     ),
                   ),
 
-                  // Stats Section
+                  // ── Stats Section ─────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -243,7 +257,7 @@ class _LandingScreenState extends State<LandingScreen>
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: AppColors.text1(context),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -263,7 +277,7 @@ class _LandingScreenState extends State<LandingScreen>
                                 value: AppConstants.activeTraders,
                                 label: 'Active Traders',
                                 icon: Icons.people_alt_rounded,
-                                color: AppColors.success,
+                                color: AppColors.profit,
                               ),
                             ),
                           ],
@@ -294,7 +308,7 @@ class _LandingScreenState extends State<LandingScreen>
                     ),
                   ),
 
-                  // Market Chart Card
+                  // ── Market Chart Card ─────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: SinhaXCard(
@@ -313,12 +327,13 @@ class _LandingScreenState extends State<LandingScreen>
                                       style: GoogleFonts.inter(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
+                                        color: AppColors.text1(context),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
                                       spacing: 8,
                                       children: [
                                         Text(
@@ -326,7 +341,7 @@ class _LandingScreenState extends State<LandingScreen>
                                           style: GoogleFonts.inter(
                                             fontSize: 24,
                                             fontWeight: FontWeight.w800,
-                                            color: AppColors.textPrimary,
+                                            color: AppColors.text1(context),
                                             letterSpacing: -0.5,
                                           ),
                                         ),
@@ -336,15 +351,19 @@ class _LandingScreenState extends State<LandingScreen>
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppColors.successSurface,
-                                            borderRadius: BorderRadius.circular(6),
+                                            color: AppColors.gainSurface(
+                                                context),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                           ),
                                           child: Text(
-                                            _timeframeLabels[_selectedTimeframe]!,
+                                            _timeframeLabels[
+                                                _selectedTimeframe]!,
                                             style: GoogleFonts.inter(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
-                                              color: AppColors.success,
+                                              color:
+                                                  AppColors.gainColor(context),
                                             ),
                                           ),
                                         ),
@@ -353,18 +372,19 @@ class _LandingScreenState extends State<LandingScreen>
                                   ],
                                 ),
                               ),
+                              // Timeframe Selector
                               Row(
                                 children: [
                                   for (final label in ['1D', '1W', '1M', '1Y'])
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 6),
+                                      padding:
+                                          const EdgeInsets.only(left: 6),
                                       child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedTimeframe = label;
-                                          });
-                                        },
-                                        child: Container(
+                                        onTap: () => setState(
+                                            () => _selectedTimeframe = label),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                              milliseconds: 200),
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 10,
                                             vertical: 5,
@@ -372,17 +392,20 @@ class _LandingScreenState extends State<LandingScreen>
                                           decoration: BoxDecoration(
                                             color: label == _selectedTimeframe
                                                 ? AppColors.primary
-                                                : AppColors.background,
-                                            borderRadius: BorderRadius.circular(6),
+                                                : AppColors.cardAlt(context),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                           ),
                                           child: Text(
                                             label,
                                             style: GoogleFonts.inter(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
-                                              color: label == _selectedTimeframe
-                                                  ? Colors.white
-                                                  : AppColors.textSecondary,
+                                              color:
+                                                  label == _selectedTimeframe
+                                                      ? Colors.white
+                                                      : AppColors.text2(
+                                                          context),
                                             ),
                                           ),
                                         ),
@@ -403,7 +426,7 @@ class _LandingScreenState extends State<LandingScreen>
                     ),
                   ),
 
-                  // Features Section
+                  // ── Features Section ──────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -414,15 +437,35 @@ class _LandingScreenState extends State<LandingScreen>
                           style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: AppColors.text1(context),
                           ),
                         ),
                         const SizedBox(height: 16),
                         ...[
-                          (Icons.psychology_rounded, 'AI-Powered Strategies', 'Advanced machine learning algorithms analyze market patterns and execute trades automatically.', AppColors.primary),
-                          (Icons.speed_rounded, 'Ultra-Low Latency', 'Execute trades in milliseconds with our high-performance infrastructure and direct market access.', AppColors.success),
-                          (Icons.shield_rounded, 'Risk Management', 'Built-in risk controls, position limits, and drawdown protection to safeguard your capital.', AppColors.warning),
-                          (Icons.analytics_rounded, 'Deep Analytics', 'Comprehensive backtesting, performance reports, and strategy optimization tools.', AppColors.primaryLight),
+                          (
+                            Icons.psychology_rounded,
+                            'AI-Powered Strategies',
+                            'Advanced machine learning algorithms analyze market patterns and execute trades automatically.',
+                            AppColors.primary,
+                          ),
+                          (
+                            Icons.speed_rounded,
+                            'Ultra-Low Latency',
+                            'Execute trades in milliseconds with our high-performance infrastructure and direct market access.',
+                            AppColors.profit,
+                          ),
+                          (
+                            Icons.shield_rounded,
+                            'Risk Management',
+                            'Built-in risk controls, position limits, and drawdown protection to safeguard your capital.',
+                            AppColors.warning,
+                          ),
+                          (
+                            Icons.analytics_rounded,
+                            'Deep Analytics',
+                            'Comprehensive backtesting, performance reports, and strategy optimization tools.',
+                            AppColors.primaryLight,
+                          ),
                         ].map(
                           (f) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
@@ -434,7 +477,7 @@ class _LandingScreenState extends State<LandingScreen>
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: f.$4.withValues(alpha: 0.1),
+                                      color: f.$4.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(f.$1, color: f.$4, size: 22),
@@ -442,14 +485,15 @@ class _LandingScreenState extends State<LandingScreen>
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           f.$2,
                                           style: GoogleFonts.inter(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: AppColors.textPrimary,
+                                            color: AppColors.text1(context),
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -457,7 +501,7 @@ class _LandingScreenState extends State<LandingScreen>
                                           f.$3,
                                           style: GoogleFonts.inter(
                                             fontSize: 12,
-                                            color: AppColors.textSecondary,
+                                            color: AppColors.text2(context),
                                             height: 1.4,
                                           ),
                                         ),
@@ -473,7 +517,7 @@ class _LandingScreenState extends State<LandingScreen>
                     ),
                   ),
 
-                  // CTA Bottom
+                  // ── CTA Bottom ────────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                     child: GradientCard(
@@ -502,11 +546,12 @@ class _LandingScreenState extends State<LandingScreen>
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () => Navigator.pushNamed(context, '/login'),
+                              onPressed: () => context.go('/login'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -535,6 +580,8 @@ class _LandingScreenState extends State<LandingScreen>
   }
 }
 
+// ── Stat Card ─────────────────────────────────────────────────────────────────
+
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.value,
@@ -553,12 +600,12 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: AppColors.isDark(context) ? 0.25 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -570,7 +617,7 @@ class _StatCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -585,7 +632,7 @@ class _StatCard extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -593,7 +640,7 @@ class _StatCard extends StatelessWidget {
                   label,
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                 ),
               ],

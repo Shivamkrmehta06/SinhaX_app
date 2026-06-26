@@ -30,15 +30,23 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = backgroundColor ?? AppColors.card(context);
+    final labelColor = AppColors.text2(context);
+    final valueTextColor = valueColor ?? AppColors.text1(context);
+    final trendColor =
+        trendPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withValues(alpha: 0.04),
+            color: AppColors.isDark(context)
+                ? Colors.black.withValues(alpha: 0.2)
+                : AppColors.textPrimary.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -57,7 +65,7 @@ class StatCard extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: compact ? 10 : 11,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    color: labelColor,
                     letterSpacing: 0.3,
                   ),
                   maxLines: 1,
@@ -68,7 +76,8 @@ class StatCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
+                    color:
+                        (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -85,7 +94,7 @@ class StatCard extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: compact ? 16 : 20,
               fontWeight: FontWeight.w700,
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueTextColor,
               letterSpacing: -0.3,
             ),
           ),
@@ -95,17 +104,18 @@ class StatCard extends StatelessWidget {
               children: [
                 if (trend != null) ...[
                   Icon(
-                    trendPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                    trendPositive
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
                     size: 12,
-                    color: trendPositive ? AppColors.success : AppColors.error,
+                    color: trendColor,
                   ),
                   const SizedBox(width: 2),
                   Text(
                     trend!,
                     style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: trendPositive ? AppColors.success : AppColors.error,
+                      fontSize: 11, fontWeight: FontWeight.w600,
+                      color: trendColor,
                     ),
                   ),
                   if (subValue != null) const SizedBox(width: 4),
@@ -116,7 +126,7 @@ class StatCard extends StatelessWidget {
                       subValue!,
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: AppColors.textTertiary,
+                        color: AppColors.text3(context),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),

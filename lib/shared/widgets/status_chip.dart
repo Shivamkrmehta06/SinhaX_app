@@ -18,42 +18,47 @@ class StatusChip extends StatelessWidget {
   final IconData? icon;
   final bool compact;
 
-  Color get _bgColor {
-    return switch (type) {
-      StatusType.success => AppColors.successSurface,
-      StatusType.warning => AppColors.warningSurface,
-      StatusType.error => AppColors.errorSurface,
-      StatusType.info => AppColors.primarySurface,
-      StatusType.neutral => AppColors.background,
-    };
-  }
-
-  Color get _textColor {
-    return switch (type) {
-      StatusType.success => AppColors.success,
-      StatusType.warning => AppColors.warning,
-      StatusType.error => AppColors.error,
-      StatusType.info => AppColors.primary,
-      StatusType.neutral => AppColors.textSecondary,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+
+    final (bgColor, textColor) = switch (type) {
+      StatusType.success => (
+          isDark ? AppColors.darkProfitSurface : AppColors.profitSurface,
+          isDark ? AppColors.darkProfit : AppColors.profit,
+        ),
+      StatusType.warning => (
+          isDark ? const Color(0xFF2A1F06) : AppColors.warningSurface,
+          AppColors.warning,
+        ),
+      StatusType.error => (
+          isDark ? AppColors.darkLossSurface : AppColors.lossSurface,
+          isDark ? AppColors.darkLoss : AppColors.loss,
+        ),
+      StatusType.info => (
+          isDark ? AppColors.darkPrimarySurface : AppColors.primarySurface,
+          AppColors.primary,
+        ),
+      StatusType.neutral => (
+          isDark ? AppColors.darkSurfaceAlt : AppColors.background,
+          isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+        ),
+    };
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 10,
         vertical: compact ? 3 : 5,
       ),
       decoration: BoxDecoration(
-        color: _bgColor,
+        color: bgColor,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: compact ? 10 : 12, color: _textColor),
+            Icon(icon, size: compact ? 10 : 12, color: textColor),
             SizedBox(width: compact ? 3 : 4),
           ],
           Text(
@@ -61,7 +66,7 @@ class StatusChip extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: compact ? 10 : 11,
               fontWeight: FontWeight.w600,
-              color: _textColor,
+              color: textColor,
             ),
           ),
         ],
@@ -92,7 +97,7 @@ class _LiveStatusIndicatorState extends State<LiveStatusIndicator>
       duration: const Duration(seconds: 1),
       vsync: this,
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
+    _animation = Tween<double>(begin: 0.4, end: 1.0).animate(_controller);
   }
 
   @override
@@ -103,29 +108,31 @@ class _LiveStatusIndicatorState extends State<LiveStatusIndicator>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.color ?? AppColors.success;
+    final color = widget.color ?? AppColors.gainColor(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedBuilder(
           animation: _animation,
-          builder: (context, child) {
-            return Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: _animation.value),
-              ),
-            );
-          },
+          builder: (context, child) => Container(
+            width: 8, height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: _animation.value),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.4),
+                  blurRadius: 4, spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(width: 6),
         Text(
           widget.label,
           style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontSize: 12, fontWeight: FontWeight.w600,
             color: color,
           ),
         ),

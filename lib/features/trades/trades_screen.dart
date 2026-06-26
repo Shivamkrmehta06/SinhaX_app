@@ -1,149 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
-
+import '../../core/providers/trades_provider.dart';
 import '../../shared/widgets/sinhax_card.dart';
 import '../../shared/widgets/status_chip.dart';
 
-// ─────────────────────────────────────────────
-// Model
-// ─────────────────────────────────────────────
-
-enum TradeType { buy, sell }
-
-enum TradeStatus { executed, pending, cancelled }
-
-class TradeModel {
-  const TradeModel({
-    required this.symbol,
-    required this.strategy,
-    required this.dateTime,
-    required this.type,
-    required this.qty,
-    required this.status,
-    required this.entryPrice,
-    this.exitPrice,
-    this.pnl,
-  });
-
-  final String symbol;
-  final String strategy;
-  final String dateTime;
-  final TradeType type;
-  final String qty;
-  final TradeStatus status;
-  final String entryPrice;
-  final String? exitPrice;
-  final String? pnl; // e.g. "+₹3,700" or "-₹625"
-}
-
-// ─────────────────────────────────────────────
-// Sample Data
-// ─────────────────────────────────────────────
-
-const List<TradeModel> _allTrades = [
-  TradeModel(
-    symbol: 'NIFTY23DEC',
-    strategy: 'Momentum Breakout',
-    dateTime: '16 Jun, 09:32 AM',
-    type: TradeType.buy,
-    qty: '50',
-    status: TradeStatus.executed,
-    entryPrice: '₹19,850',
-    exitPrice: '₹19,924',
-    pnl: '+₹3,700',
-  ),
-  TradeModel(
-    symbol: 'RELIANCE',
-    strategy: 'MACD Crossover',
-    dateTime: '16 Jun, 10:15 AM',
-    type: TradeType.sell,
-    qty: '100',
-    status: TradeStatus.executed,
-    entryPrice: '₹2,934',
-    exitPrice: '₹2,898',
-    pnl: '+₹3,600',
-  ),
-  TradeModel(
-    symbol: 'BTC/USDT',
-    strategy: 'BTC Scalper',
-    dateTime: '16 Jun, 11:00 AM',
-    type: TradeType.buy,
-    qty: '0.5',
-    status: TradeStatus.pending,
-    entryPrice: '₹67,200',
-    exitPrice: null,
-    pnl: null,
-  ),
-  TradeModel(
-    symbol: 'TCS',
-    strategy: 'RSI Reversal',
-    dateTime: '15 Jun, 03:12 PM',
-    type: TradeType.buy,
-    qty: '25',
-    status: TradeStatus.executed,
-    entryPrice: '₹4,012',
-    exitPrice: '₹3,987',
-    pnl: '-₹625',
-  ),
-  TradeModel(
-    symbol: 'HDFC',
-    strategy: 'Momentum',
-    dateTime: '15 Jun, 01:45 PM',
-    type: TradeType.sell,
-    qty: '75',
-    status: TradeStatus.cancelled,
-    entryPrice: '₹1,678',
-    exitPrice: null,
-    pnl: null,
-  ),
-  TradeModel(
-    symbol: 'ETH/USDT',
-    strategy: 'Algo Scalper',
-    dateTime: '14 Jun, 06:20 PM',
-    type: TradeType.buy,
-    qty: '2',
-    status: TradeStatus.executed,
-    entryPrice: '₹3,521',
-    exitPrice: '₹3,589',
-    pnl: '+₹9,860',
-  ),
-  TradeModel(
-    symbol: 'INFY',
-    strategy: 'MACD',
-    dateTime: '14 Jun, 02:05 PM',
-    type: TradeType.buy,
-    qty: '50',
-    status: TradeStatus.executed,
-    entryPrice: '₹1,789',
-    exitPrice: '₹1,812',
-    pnl: '+₹1,150',
-  ),
-  TradeModel(
-    symbol: 'BANKEX',
-    strategy: 'Breakout',
-    dateTime: '13 Jun, 11:30 AM',
-    type: TradeType.buy,
-    qty: '30',
-    status: TradeStatus.pending,
-    entryPrice: '₹52,340',
-    exitPrice: null,
-    pnl: null,
-  ),
-];
-
-// ─────────────────────────────────────────────
-// Screen
-// ─────────────────────────────────────────────
-
-class TradesScreen extends StatefulWidget {
+class TradesScreen extends ConsumerStatefulWidget {
   const TradesScreen({super.key});
 
   @override
-  State<TradesScreen> createState() => _TradesScreenState();
+  ConsumerState<TradesScreen> createState() => _TradesScreenState();
 }
 
-class _TradesScreenState extends State<TradesScreen> {
+class _TradesScreenState extends ConsumerState<TradesScreen> {
   String _selectedFilter = 'All';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -155,8 +25,8 @@ class _TradesScreenState extends State<TradesScreen> {
     'Cancelled',
   ];
 
-  List<TradeModel> get _filteredTrades {
-    return _allTrades.where((trade) {
+  List<TradeModel> _filteredTrades(List<TradeModel> allTrades) {
+    return allTrades.where((trade) {
       // Status filter
       final matchesFilter = switch (_selectedFilter) {
         'Executed' => trade.status == TradeStatus.executed,
@@ -176,12 +46,12 @@ class _TradesScreenState extends State<TradesScreen> {
   }
 
   // Summary counts
-  int get _executedCount =>
-      _allTrades.where((t) => t.status == TradeStatus.executed).length;
-  int get _pendingCount =>
-      _allTrades.where((t) => t.status == TradeStatus.pending).length;
-  int get _cancelledCount =>
-      _allTrades.where((t) => t.status == TradeStatus.cancelled).length;
+  int _executedCount(List<TradeModel> allTrades) =>
+      allTrades.where((t) => t.status == TradeStatus.executed).length;
+  int _pendingCount(List<TradeModel> allTrades) =>
+      allTrades.where((t) => t.status == TradeStatus.pending).length;
+  int _cancelledCount(List<TradeModel> allTrades) =>
+      allTrades.where((t) => t.status == TradeStatus.cancelled).length;
 
   @override
   void dispose() {
@@ -189,25 +59,24 @@ class _TradesScreenState extends State<TradesScreen> {
     super.dispose();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredTrades;
+    final allTrades = ref.watch(tradesProvider).trades;
+    final filtered = _filteredTrades(allTrades);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
+      backgroundColor: AppColors.bg(context),
+      appBar: _buildAppBar(context),
       body: Column(
         children: [
           // Search + filters (sticky)
-          _buildSearchAndFilters(),
+          _buildSearchAndFilters(context),
           // Summary strip
-          _buildSummaryStrip(),
+          _buildSummaryStrip(context, allTrades),
           // Trade list
           Expanded(
             child: filtered.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(context)
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     itemCount: filtered.length,
@@ -221,9 +90,9 @@ class _TradesScreenState extends State<TradesScreen> {
   }
 
   // ── AppBar ───────────────────────────────────
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.card(context),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
@@ -232,14 +101,14 @@ class _TradesScreenState extends State<TradesScreen> {
         style: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+          color: AppColors.text1(context),
         ),
       ),
       actions: [
         Container(
           margin: const EdgeInsets.only(right: 8),
           decoration: BoxDecoration(
-            color: AppColors.primarySurface,
+            color: AppColors.primarySurfaceColor(context),
             borderRadius: BorderRadius.circular(10),
           ),
           child: IconButton(
@@ -257,7 +126,7 @@ class _TradesScreenState extends State<TradesScreen> {
                     style: GoogleFonts.inter(fontSize: 13),
                   ),
                   behavior: SnackBarBehavior.floating,
-                  backgroundColor: AppColors.textPrimary,
+                  backgroundColor: AppColors.text1(context),
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -267,15 +136,15 @@ class _TradesScreenState extends State<TradesScreen> {
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Divider(height: 1, color: AppColors.border),
+        child: Divider(height: 1, color: AppColors.borderColor(context)),
       ),
     );
   }
 
   // ── Search bar + Filter chips ─────────────────
-  Widget _buildSearchAndFilters() {
+  Widget _buildSearchAndFilters(BuildContext context) {
     return Container(
-      color: AppColors.white,
+      color: AppColors.card(context),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,18 +155,18 @@ class _TradesScreenState extends State<TradesScreen> {
             onChanged: (v) => setState(() => _searchQuery = v.trim()),
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: AppColors.textPrimary,
+              color: AppColors.text1(context),
             ),
             decoration: InputDecoration(
               hintText: 'Search symbol or strategy…',
               hintStyle: GoogleFonts.inter(
                 fontSize: 14,
-                color: AppColors.textTertiary,
+                color: AppColors.text3(context),
               ),
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.search_rounded,
                 size: 20,
-                color: AppColors.textSecondary,
+                color: AppColors.text2(context),
               ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? GestureDetector(
@@ -305,24 +174,24 @@ class _TradesScreenState extends State<TradesScreen> {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
                       },
-                      child: const Icon(
+                      child: Icon(
                         Icons.close_rounded,
                         size: 18,
-                        color: AppColors.textTertiary,
+                        color: AppColors.text3(context),
                       ),
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: AppColors.bg(context),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.borderColor(context)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.borderColor(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -356,59 +225,59 @@ class _TradesScreenState extends State<TradesScreen> {
   }
 
   // ── Summary strip ─────────────────────────────
-  Widget _buildSummaryStrip() {
+  Widget _buildSummaryStrip(BuildContext context, List<TradeModel> allTrades) {
     return Container(
-      color: AppColors.white,
+      color: AppColors.card(context),
       child: Column(
         children: [
-          Divider(height: 1, color: AppColors.border),
+          Divider(height: 1, color: AppColors.borderColor(context)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
                 _SummaryStat(
                   label: 'Total',
-                  value: '${_allTrades.length}',
-                  valueColor: AppColors.textPrimary,
+                  value: '${allTrades.length}',
+                  valueColor: AppColors.text1(context),
                 ),
-                _buildVerticalDivider(),
+                _buildVerticalDivider(context),
                 _SummaryStat(
                   label: 'Executed',
-                  value: '$_executedCount',
-                  valueColor: AppColors.success,
+                  value: '${_executedCount(allTrades)}',
+                  valueColor: AppColors.gainColor(context),
                 ),
-                _buildVerticalDivider(),
+                _buildVerticalDivider(context),
                 _SummaryStat(
                   label: 'Pending',
-                  value: '$_pendingCount',
+                  value: '${_pendingCount(allTrades)}',
                   valueColor: AppColors.warning,
                 ),
-                _buildVerticalDivider(),
+                _buildVerticalDivider(context),
                 _SummaryStat(
                   label: 'Cancelled',
-                  value: '$_cancelledCount',
-                  valueColor: AppColors.textSecondary,
+                  value: '${_cancelledCount(allTrades)}',
+                  valueColor: AppColors.text2(context),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: AppColors.border),
+          Divider(height: 1, color: AppColors.borderColor(context)),
         ],
       ),
     );
   }
 
-  Widget _buildVerticalDivider() {
+  Widget _buildVerticalDivider(BuildContext context) {
     return Container(
       width: 1,
       height: 28,
       margin: const EdgeInsets.symmetric(horizontal: 12),
-      color: AppColors.border,
+      color: AppColors.borderColor(context),
     );
   }
 
   // ── Empty state ───────────────────────────────
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -417,7 +286,7 @@ class _TradesScreenState extends State<TradesScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.primarySurface,
+              color: AppColors.primarySurfaceColor(context),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -432,7 +301,7 @@ class _TradesScreenState extends State<TradesScreen> {
             style: GoogleFonts.inter(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: AppColors.text1(context),
             ),
           ),
           const SizedBox(height: 6),
@@ -440,7 +309,7 @@ class _TradesScreenState extends State<TradesScreen> {
             'Try adjusting your search or filter.',
             style: GoogleFonts.inter(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: AppColors.text2(context),
             ),
           ),
         ],
@@ -473,10 +342,10 @@ class _FilterChip extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.background,
+          color: selected ? AppColors.primary : AppColors.bg(context),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.primary : AppColors.borderColor(context),
             width: 1.5,
           ),
         ),
@@ -486,7 +355,7 @@ class _FilterChip extends StatelessWidget {
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color:
-                selected ? AppColors.textOnPrimary : AppColors.textSecondary,
+                selected ? AppColors.textOnPrimary : AppColors.text2(context),
           ),
         ),
       ),
@@ -529,7 +398,7 @@ class _SummaryStat extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: AppColors.textTertiary,
+              color: AppColors.text3(context),
             ),
           ),
         ],
@@ -548,10 +417,10 @@ class _TradeCard extends StatelessWidget {
   final TradeModel trade;
 
   // ── Type badge: BUY=blue, SELL=red ─────────
-  Widget _buildTypeBadge() {
+  Widget _buildTypeBadge(BuildContext context) {
     final isBuy = trade.type == TradeType.buy;
-    final color = isBuy ? AppColors.primary : AppColors.error;
-    final bgColor = isBuy ? AppColors.primarySurface : AppColors.errorSurface;
+    final color = isBuy ? AppColors.primary : AppColors.lossColor(context);
+    final bgColor = isBuy ? AppColors.primarySurfaceColor(context) : AppColors.lossSurfaceColor(context);
     final label = isBuy ? 'BUY' : 'SELL';
     final icon = isBuy ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
 
@@ -581,10 +450,10 @@ class _TradeCard extends StatelessWidget {
   }
 
   // ── P&L colour ──────────────────────────────
-  Color _pnlColor() {
+  Color _pnlColor(BuildContext context) {
     final pnl = trade.pnl;
-    if (pnl == null) return AppColors.textTertiary;
-    return pnl.startsWith('+') ? AppColors.success : AppColors.error;
+    if (pnl == null) return AppColors.text3(context);
+    return pnl.startsWith('+') ? AppColors.gainColor(context) : AppColors.lossColor(context);
   }
 
   // ── Status ──────────────────────────────────
@@ -601,7 +470,7 @@ class _TradeCard extends StatelessWidget {
       };
 
   // ── Price detail column ─────────────────────
-  Widget _buildPriceDetail(String label, String value) {
+  Widget _buildPriceDetail(BuildContext context, String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -610,7 +479,7 @@ class _TradeCard extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 10,
             fontWeight: FontWeight.w500,
-            color: AppColors.textTertiary,
+            color: AppColors.text3(context),
           ),
         ),
         const SizedBox(height: 2),
@@ -619,7 +488,7 @@ class _TradeCard extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: AppColors.text1(context),
           ),
         ),
       ],
@@ -650,7 +519,7 @@ class _TradeCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.primarySurface,
+                      color: AppColors.primarySurfaceColor(context),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
@@ -675,7 +544,7 @@ class _TradeCard extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: AppColors.text1(context),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -684,7 +553,7 @@ class _TradeCard extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
-                            color: AppColors.textSecondary,
+                            color: AppColors.text2(context),
                           ),
                         ),
                       ],
@@ -699,7 +568,7 @@ class _TradeCard extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          color: AppColors.text2(context),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -709,7 +578,7 @@ class _TradeCard extends StatelessWidget {
                             : '',
                         style: GoogleFonts.inter(
                           fontSize: 11,
-                          color: AppColors.textTertiary,
+                          color: AppColors.text3(context),
                         ),
                       ),
                     ],
@@ -721,7 +590,7 @@ class _TradeCard extends StatelessWidget {
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Divider(height: 1, color: AppColors.divider),
+              child: Divider(height: 1, color: AppColors.borderColor(context)),
             ),
             const SizedBox(height: 12),
 
@@ -730,15 +599,15 @@ class _TradeCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _buildTypeBadge(),
+                  _buildTypeBadge(context),
                   const SizedBox(width: 10),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.background,
+                      color: AppColors.bg(context),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: AppColors.borderColor(context)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -748,7 +617,7 @@ class _TradeCard extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
-                            color: AppColors.textTertiary,
+                            color: AppColors.text3(context),
                           ),
                         ),
                         Text(
@@ -756,7 +625,7 @@ class _TradeCard extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: AppColors.text1(context),
                           ),
                         ),
                       ],
@@ -780,7 +649,7 @@ class _TradeCard extends StatelessWidget {
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Divider(height: 1, color: AppColors.divider),
+              child: Divider(height: 1, color: AppColors.borderColor(context)),
             ),
             const SizedBox(height: 12),
 
@@ -789,56 +658,36 @@ class _TradeCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
               child: Row(
                 children: [
-                  _buildPriceDetail('Entry Price', trade.entryPrice),
+                  _buildPriceDetail(context, 'Entry Price', trade.entryPrice),
                   Container(
                     width: 1,
                     height: 28,
                     margin: const EdgeInsets.symmetric(horizontal: 14),
-                    color: AppColors.border,
+                    color: AppColors.borderColor(context),
                   ),
                   _buildPriceDetail(
+                    context,
                     'Exit Price',
-                    hasExit ? trade.exitPrice! : '—',
+                    hasExit ? trade.exitPrice! : '--',
                   ),
                   const Spacer(),
-                  // P&L pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: hasPnl
-                          ? (trade.pnl!.startsWith('+')
-                              ? AppColors.successSurface
-                              : AppColors.errorSurface)
-                          : AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (hasPnl) ...[
-                          Icon(
-                            trade.pnl!.startsWith('+')
-                                ? Icons.trending_up_rounded
-                                : Icons.trending_down_rounded,
-                            size: 14,
-                            color: _pnlColor(),
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                        Text(
-                          hasPnl ? trade.pnl! : 'Open',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: hasPnl
-                                ? _pnlColor()
-                                : AppColors.textSecondary,
-                          ),
+                  if (hasPnl)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _pnlColor(context).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        trade.pnl!,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _pnlColor(context),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

@@ -31,7 +31,7 @@ class SectionHeader extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               if (subtitle != null) ...[
@@ -40,7 +40,7 @@ class SectionHeader extends StatelessWidget {
                   subtitle!,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                 ),
               ],

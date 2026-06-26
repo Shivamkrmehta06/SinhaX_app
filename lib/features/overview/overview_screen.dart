@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/providers/market_provider.dart';
+import '../../core/providers/portfolio_provider.dart';
+import '../../shared/widgets/interactive_3d_card.dart';
 import '../../shared/widgets/market_ticker_banner.dart';
 import '../../shared/widgets/mini_chart.dart';
 import '../../shared/widgets/section_header.dart';
@@ -9,62 +13,8 @@ import '../../shared/widgets/stat_card.dart';
 import '../../shared/widgets/status_chip.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sample data
+// Static data (signal conditions — not from a provider)
 // ─────────────────────────────────────────────────────────────────────────────
-
-const List<double> _portfolioSparkline = [
-  320000, 324000, 319500, 330000, 327000, 335000, 340000,
-  338000, 345000, 352000, 349000, 358000, 362000, 370000,
-  375000, 368000, 380000, 385000, 392000, 400000, 410000,
-  415000, 408000, 420000, 428500,
-];
-
-const List<double> _algoSparkline = [
-  10, 14, 11, 18, 15, 20, 17, 22, 19, 25, 23,
-];
-
-const List<Map<String, dynamic>> _liveStocks = [
-  {
-    'symbol': 'RELIANCE',
-    'name': 'Reliance Ind.',
-    'price': '₹2,934.55',
-    'change': '+1.24%',
-    'up': true,
-    'data': <double>[2880, 2895, 2876, 2910, 2922, 2934, 2930, 2934],
-  },
-  {
-    'symbol': 'TCS',
-    'name': 'Tata Cons. Svc.',
-    'price': '₹4,012.80',
-    'change': '+0.87%',
-    'up': true,
-    'data': <double>[3960, 3975, 3990, 4002, 3995, 4008, 4012, 4012],
-  },
-  {
-    'symbol': 'INFY',
-    'name': 'Infosys Ltd.',
-    'price': '₹1,789.45',
-    'change': '-0.34%',
-    'up': false,
-    'data': <double>[1810, 1802, 1798, 1793, 1800, 1795, 1790, 1789],
-  },
-  {
-    'symbol': 'HDFC',
-    'name': 'HDFC Bank',
-    'price': '₹1,678.90',
-    'change': '+0.62%',
-    'up': true,
-    'data': <double>[1660, 1665, 1670, 1668, 1672, 1675, 1678, 1678],
-  },
-  {
-    'symbol': 'WIPRO',
-    'name': 'Wipro Ltd.',
-    'price': '₹543.20',
-    'change': '-0.21%',
-    'up': false,
-    'data': <double>[548, 546, 545, 546, 544, 543, 543, 543],
-  },
-];
 
 const List<Map<String, dynamic>> _signalConditions = [
   {
@@ -101,156 +51,98 @@ const List<Map<String, dynamic>> _signalConditions = [
 // OverviewScreen
 // ─────────────────────────────────────────────────────────────────────────────
 
-class OverviewScreen extends StatelessWidget {
+class OverviewScreen extends ConsumerWidget {
   const OverviewScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final portfolio = ref.watch(portfolioProvider);
+    final quotes = ref.watch(marketProvider);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // ── Custom AppBar ──────────────────────────────────────────────
-            SliverToBoxAdapter(child: _OverviewAppBar()),
-
-            // ── Market Ticker ──────────────────────────────────────────────
-            const SliverToBoxAdapter(child: MarketTickerBanner()),
-
-            // ── Body padding wrapper ───────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // ── Algo Engine Card ─────────────────────────────────────
-                  _AlgoEngineCard(),
-                  const SizedBox(height: 20),
-
-                  // ── Market Status Row ────────────────────────────────────
-                  const SectionHeader(
-                    title: 'Market Status',
-                    subtitle: 'Live session overview',
-                  ),
-                  const SizedBox(height: 12),
-                  const _MarketStatusRow(),
-                  const SizedBox(height: 20),
-
-                  // ── Signal Conditions ────────────────────────────────────
-                  const SectionHeader(
-                    title: 'Signal Conditions',
-                    subtitle: 'Active algo trigger rules',
-                    actionLabel: 'View All',
-                  ),
-                  const SizedBox(height: 12),
-                  _SignalConditionsCard(),
-                  const SizedBox(height: 20),
-
-                  // ── Stats Grid ───────────────────────────────────────────
-                  const SectionHeader(
-                    title: 'Portfolio Overview',
-                    subtitle: 'Real-time performance metrics',
-                  ),
-                  const SizedBox(height: 12),
-                  const _StatsGrid(),
-                  const SizedBox(height: 20),
-
-                  // ── Portfolio Chart ──────────────────────────────────────
-                  SinhaXCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Portfolio Performance',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Last 25 trading sessions',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: AppColors.successSurface,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.trending_up_rounded,
-                                      size: 13, color: AppColors.success),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '+34.0%',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        LineChartWidget(
-                          data: _portfolioSparkline,
-                          height: 200,
-                          showGrid: true,
-                          lineColor: AppColors.primary,
-                          fillGradient: true,
-                          labels: const [
-                            'Jan', '', '', '', 'Feb', '', '', '', 'Mar',
-                            '', '', '', 'Apr', '', '', '', 'May', '',
-                            '', '', 'Jun', '', '', '', '',
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Live Prices ──────────────────────────────────────────
-                  SectionHeader(
-                    title: 'Live Prices',
-                    subtitle: 'Real-time market data',
-                    actionLabel: 'See All',
-                    onAction: () {},
-                  ),
-                  const SizedBox(height: 12),
-                  _LivePricesCard(),
-                  const SizedBox(height: 20),
-
-                  // ── Market Overview (Top Gainer / Loser) ─────────────────
-                  const SectionHeader(
-                    title: 'Market Movers',
-                    subtitle: "Today's top gainer & loser",
-                  ),
-                  const SizedBox(height: 12),
-                  const _MarketMoversRow(),
-                  const SizedBox(height: 8),
-                ]),
-              ),
+        child: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            ref.read(marketProvider.notifier).refresh();
+          },
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-          ],
+            slivers: [
+              // ── Custom AppBar ─────────────────────────────────────────────
+              SliverToBoxAdapter(child: _OverviewAppBar()),
+
+              // ── Market Ticker ─────────────────────────────────────────────
+              const SliverToBoxAdapter(child: MarketTickerBanner()),
+
+              // ── Body ──────────────────────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // ── Portfolio Performance Card ──────────────────────────
+                    _PortfolioCard(portfolio: portfolio),
+                    const SizedBox(height: 20),
+
+                    // ── Market Status ───────────────────────────────────────
+                    const SectionHeader(
+                      title: 'Market Status',
+                      subtitle: 'Live session overview',
+                    ),
+                    const SizedBox(height: 12),
+                    const _MarketStatusRow(),
+                    const SizedBox(height: 20),
+
+                    // ── Signal Conditions ───────────────────────────────────
+                    const SectionHeader(
+                      title: 'Signal Conditions',
+                      subtitle: 'Active algo trigger rules',
+                      actionLabel: 'View All',
+                    ),
+                    const SizedBox(height: 12),
+                    _SignalConditionsCard(),
+                    const SizedBox(height: 20),
+
+                    // ── Stats Grid ──────────────────────────────────────────
+                    const SectionHeader(
+                      title: 'Portfolio Overview',
+                      subtitle: 'Real-time performance metrics',
+                    ),
+                    const SizedBox(height: 12),
+                    _StatsGrid(portfolio: portfolio),
+                    const SizedBox(height: 20),
+
+                    // ── Portfolio Line Chart ────────────────────────────────
+                    _PortfolioChartCard(portfolio: portfolio),
+                    const SizedBox(height: 20),
+
+                    // ── Live Prices ─────────────────────────────────────────
+                    SectionHeader(
+                      title: 'Live Prices',
+                      subtitle: 'Real-time market data',
+                      actionLabel: 'See All',
+                      onAction: () {},
+                    ),
+                    const SizedBox(height: 12),
+                    _LivePricesCard(quotes: quotes),
+                    const SizedBox(height: 20),
+
+                    // ── Market Movers ───────────────────────────────────────
+                    const SectionHeader(
+                      title: 'Market Movers',
+                      subtitle: "Today's top gainer & loser",
+                    ),
+                    const SizedBox(height: 12),
+                    _MarketMoversRow(quotes: quotes),
+                    const SizedBox(height: 8),
+                  ]),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -264,114 +156,132 @@ class OverviewScreen extends StatelessWidget {
 class _OverviewAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
-      color: AppColors.background,
+    final isDark = AppColors.isDark(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       child: Row(
         children: [
+          // Avatar
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt,
+              border: Border.all(
+                color: AppColors.borderColor(context),
+                width: 1,
+              ),
+              image: const DecorationImage(
+                image: AssetImage('assets/images/logo.jpg'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          
           // Greeting block
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Good Morning, Shivam 👋',
+                  'Welcome back,',
                   style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.3,
+                    fontSize: 13,
+                    color: AppColors.text2(context),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Markets are open · Algo running',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  'Shivam Mehta',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text1(context),
+                    letterSpacing: -0.5,
+                  ),
                 ),
               ],
             ),
           ),
-          // Notification button
+          
+          // Market Status & Notification
           Container(
-            width: 40,
-            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              color: AppColors.card(context),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.borderColor(context)),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.04),
-                  blurRadius: 8,
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                  blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: Stack(
-              alignment: Alignment.center,
+            child: Row(
               children: [
-                const Icon(Icons.notifications_outlined,
-                    color: AppColors.textSecondary, size: 20),
-                Positioned(
-                  top: 9,
-                  right: 9,
-                  child: Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: AppColors.error,
-                      shape: BoxShape.circle,
-                    ),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withValues(alpha: 0.4),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      )
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: AppColors.primaryGradient,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.30),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                const SizedBox(width: 6),
+                Text(
+                  'Live',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.text1(context),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 1,
+                  height: 14,
+                  color: AppColors.borderColor(context),
+                ),
+                const SizedBox(width: 10),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      color: AppColors.text1(context),
+                      size: 20,
+                    ),
+                    Positioned(
+                      top: -1,
+                      right: -1,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.card(context),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              'S',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.white,
-              ),
             ),
           ),
         ],
@@ -381,166 +291,157 @@ class _OverviewAppBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Algo Engine Card
+// Portfolio Performance Card  (was _AlgoEngineCard)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AlgoEngineCard extends StatelessWidget {
+class _PortfolioCard extends StatelessWidget {
+  const _PortfolioCard({required this.portfolio});
+
+  final PortfolioState portfolio;
+
   @override
   Widget build(BuildContext context) {
-    return GradientCard(
-      padding: const EdgeInsets.all(20),
-      gradientColors: const [Color(0xFF1E40AF), Color(0xFF2563EB), Color(0xFF3B82F6)],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row
-          Row(
-            children: [
-              // Icon container
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.memory_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Algo Engine',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    const LiveStatusIndicator(
-                      label: 'Running',
-                      color: Color(0xFF4ADE80),
-                    ),
-                  ],
-                ),
-              ),
-              // Uptime badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                ),
-                child: Text(
-                  'Uptime 99.8%',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+    final isDayUp = portfolio.dayPnl >= 0;
+    final daySign = isDayUp ? '+' : '';
+
+    return Interactive3DCard(
+      child: GradientCard(
+        padding: const EdgeInsets.all(20),
+        gradientColors: const [Color(0xFF1E40AF), Color(0xFF2563EB), Color(0xFF3B82F6)],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
                     color: Colors.white,
+                    size: 22,
                   ),
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // 4 mini stats
-          Row(
-            children: [
-              _AlgoStat(label: 'Signals Today', value: '23'),
-              _AlgoStatDivider(),
-              _AlgoStat(label: 'Executed', value: '18'),
-              _AlgoStatDivider(),
-              _AlgoStat(label: 'Pending', value: '5'),
-              _AlgoStatDivider(),
-              _AlgoStat(label: 'Success Rate', value: '78.3%'),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // Sparkline chart
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Signal Activity',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.65),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Portfolio Value',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.75),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      height: 52,
-                      child: MiniSparkline(
-                        data: _algoSparkline,
-                        positive: true,
-                        width: double.infinity,
-                        height: 52,
-                        strokeWidth: 2,
-                        showFill: true,
+                      const SizedBox(height: 2),
+                      const LiveStatusIndicator(
+                        label: 'Live',
+                        color: Color(0xFF4ADE80),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Next Scan',
+                // Day P&L badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isDayUp
+                        ? const Color(0xFF16C784).withValues(alpha: 0.25)
+                        : const Color(0xFFEA3943).withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDayUp
+                          ? const Color(0xFF16C784).withValues(alpha: 0.45)
+                          : const Color(0xFFEA3943).withValues(alpha: 0.45),
+                    ),
+                  ),
+                  child: Text(
+                    '$daySign₹${portfolio.dayPnl.abs().toStringAsFixed(0)} • '
+                    '$daySign${portfolio.dayPnlPct.abs().toStringAsFixed(2)}%',
                     style: GoogleFonts.inter(
                       fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.65),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '00:04:32',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1,
+                      color: isDayUp
+                          ? const Color(0xFF4ADE80)
+                          : const Color(0xFFFF6B6B),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Auto-refresh ON',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: Colors.white.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+  
+            const SizedBox(height: 16),
+  
+            // Big number
+            Text(
+              '₹${_formatValue(portfolio.totalValue)}',
+              style: GoogleFonts.inter(
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -0.5,
               ),
-            ],
-          ),
-        ],
+            ),
+  
+            const SizedBox(height: 16),
+  
+            // Sparkline
+            SizedBox(
+              height: 56,
+              child: MiniSparkline(
+                data: portfolio.performanceChart,
+                positive: true,
+                width: double.infinity,
+                height: 56,
+                strokeWidth: 2,
+                showFill: true,
+              ),
+            ),
+  
+            const SizedBox(height: 16),
+  
+            // Bottom stats row
+            Row(
+              children: [
+                _CardStat(
+                  label: 'Invested',
+                  value: '₹${_formatValue(portfolio.totalInvested)}',
+                ),
+                _CardDivider(),
+                _CardStat(
+                  label: 'Total P&L',
+                  value: '+₹${_formatValue(portfolio.totalPnl)}',
+                ),
+                _CardDivider(),
+                _CardStat(
+                  label: 'Returns',
+                  value: '+${portfolio.totalPnlPct.toStringAsFixed(1)}%',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  String _formatValue(double v) {
+    if (v >= 100000) {
+      return '${(v / 100000).toStringAsFixed(2)}L';
+    }
+    return v.toStringAsFixed(0);
+  }
 }
 
-class _AlgoStat extends StatelessWidget {
-  const _AlgoStat({required this.label, required this.value});
-
+class _CardStat extends StatelessWidget {
+  const _CardStat({required this.label, required this.value});
   final String label;
   final String value;
 
@@ -552,13 +453,14 @@ class _AlgoStat extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 18,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               color: Colors.white,
-              letterSpacing: -0.3,
+              letterSpacing: -0.2,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Text(
             label,
             style: GoogleFonts.inter(
@@ -567,8 +469,6 @@ class _AlgoStat extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.65),
             ),
             textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -576,12 +476,12 @@ class _AlgoStat extends StatelessWidget {
   }
 }
 
-class _AlgoStatDivider extends StatelessWidget {
+class _CardDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 36,
+      height: 32,
       color: Colors.white.withValues(alpha: 0.2),
       margin: const EdgeInsets.symmetric(horizontal: 4),
     );
@@ -602,11 +502,10 @@ class _MarketStatusRow extends StatelessWidget {
         Expanded(
           child: _MarketStatusCard(
             name: 'NSE',
-            fullName: 'Natl. Stock Exch.',
             statusLabel: 'Open',
             type: StatusType.success,
             icon: Icons.show_chart_rounded,
-            iconColor: AppColors.success,
+            iconColor: AppColors.gainColor(context),
             time: '09:15 – 15:30',
           ),
         ),
@@ -614,11 +513,10 @@ class _MarketStatusRow extends StatelessWidget {
         Expanded(
           child: _MarketStatusCard(
             name: 'BSE',
-            fullName: 'Bombay Stock Exch.',
             statusLabel: 'Open',
             type: StatusType.success,
             icon: Icons.analytics_rounded,
-            iconColor: AppColors.success,
+            iconColor: AppColors.gainColor(context),
             time: '09:15 – 15:30',
           ),
         ),
@@ -626,7 +524,6 @@ class _MarketStatusRow extends StatelessWidget {
         Expanded(
           child: _MarketStatusCard(
             name: 'Crypto',
-            fullName: 'Digital Assets',
             statusLabel: 'Live',
             type: StatusType.info,
             icon: Icons.currency_bitcoin_rounded,
@@ -642,7 +539,6 @@ class _MarketStatusRow extends StatelessWidget {
 class _MarketStatusCard extends StatelessWidget {
   const _MarketStatusCard({
     required this.name,
-    required this.fullName,
     required this.statusLabel,
     required this.type,
     required this.icon,
@@ -651,7 +547,6 @@ class _MarketStatusCard extends StatelessWidget {
   });
 
   final String name;
-  final String fullName;
   final String statusLabel;
   final StatusType type;
   final IconData icon;
@@ -671,7 +566,7 @@ class _MarketStatusCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.10),
+                  color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 16, color: iconColor),
@@ -691,7 +586,7 @@ class _MarketStatusCard extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.text1(context),
             ),
           ),
           const SizedBox(height: 2),
@@ -699,7 +594,7 @@ class _MarketStatusCard extends StatelessWidget {
             time,
             style: GoogleFonts.inter(
               fontSize: 10,
-              color: AppColors.textTertiary,
+              color: AppColors.text3(context),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -722,10 +617,10 @@ class _SignalConditionsCard extends StatelessWidget {
         children: [
           for (int i = 0; i < _signalConditions.length; i++) ...[
             if (i > 0)
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.divider,
+                color: AppColors.borderColor(context),
                 indent: 16,
                 endIndent: 16,
               ),
@@ -758,23 +653,25 @@ class _SignalRow extends StatelessWidget {
   final String status;
   final StatusType type;
 
-  Color get _iconBg {
+  Color _iconBg(BuildContext context) {
     return switch (type) {
-      StatusType.success => AppColors.successSurface,
-      StatusType.warning => AppColors.warningSurface,
-      StatusType.info => AppColors.primarySurface,
-      StatusType.error => AppColors.errorSurface,
-      StatusType.neutral => AppColors.background,
+      StatusType.success => AppColors.gainSurface(context),
+      StatusType.warning => AppColors.isDark(context)
+          ? AppColors.warningSurface.withValues(alpha: 0.15)
+          : AppColors.warningSurface,
+      StatusType.info => AppColors.primarySurfaceColor(context),
+      StatusType.error => AppColors.lossSurfaceColor(context),
+      StatusType.neutral => AppColors.cardAlt(context),
     };
   }
 
-  Color get _iconColor {
+  Color _iconColor(BuildContext context) {
     return switch (type) {
-      StatusType.success => AppColors.success,
+      StatusType.success => AppColors.gainColor(context),
       StatusType.warning => AppColors.warning,
       StatusType.info => AppColors.primary,
-      StatusType.error => AppColors.error,
-      StatusType.neutral => AppColors.textSecondary,
+      StatusType.error => AppColors.lossColor(context),
+      StatusType.neutral => AppColors.text2(context),
     };
   }
 
@@ -788,10 +685,10 @@ class _SignalRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _iconBg,
+              color: _iconBg(context),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 18, color: _iconColor),
+            child: Icon(icon, size: 18, color: _iconColor(context)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -803,7 +700,7 @@ class _SignalRow extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -811,13 +708,13 @@ class _SignalRow extends StatelessWidget {
                   detail,
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           StatusChip(label: status, type: type, compact: true),
         ],
       ),
@@ -826,68 +723,154 @@ class _SignalRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stats Grid (2 × 2)
+// Stats Grid
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatsGrid extends StatelessWidget {
-  const _StatsGrid();
+  const _StatsGrid({required this.portfolio});
+  final PortfolioState portfolio;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final isDayUp = portfolio.dayPnl >= 0;
+    final isTotalUp = portfolio.totalPnl >= 0;
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.55,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                label: 'PORTFOLIO VALUE',
-                value: '₹4,28,500',
-                subValue: 'Total invested',
-                icon: Icons.account_balance_wallet_rounded,
-                iconColor: AppColors.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatCard(
-                label: "TODAY'S P&L",
-                value: '+₹3,240',
-                trend: '+0.76%',
-                trendPositive: true,
-                icon: Icons.trending_up_rounded,
-                iconColor: AppColors.success,
-                valueColor: AppColors.success,
-              ),
-            ),
-          ],
+        StatCard(
+          label: 'TOTAL VALUE',
+          value: '₹4,28,500',
+          icon: Icons.account_balance_wallet_rounded,
+          iconColor: AppColors.primary,
+          subValue: 'Invested ₹3,20,000',
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                label: 'TOTAL TRADES',
-                value: '847',
-                subValue: 'All time',
-                icon: Icons.swap_horiz_rounded,
-                iconColor: AppColors.warning,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatCard(
-                label: 'WIN RATE',
-                value: '73.2%',
-                trend: '+2.1%',
-                trendPositive: true,
-                icon: Icons.emoji_events_rounded,
-                iconColor: AppColors.success,
-                valueColor: AppColors.success,
-              ),
-            ),
-          ],
+        StatCard(
+          label: 'DAY P&L',
+          value:
+              '${isDayUp ? '+' : ''}₹${portfolio.dayPnl.abs().toStringAsFixed(0)}',
+          icon: isDayUp
+              ? Icons.trending_up_rounded
+              : Icons.trending_down_rounded,
+          iconColor: isDayUp ? AppColors.gainColor(context) : AppColors.lossColor(context),
+          valueColor: isDayUp ? AppColors.gainColor(context) : AppColors.lossColor(context),
+          trend: '${isDayUp ? '+' : ''}${portfolio.dayPnlPct.toStringAsFixed(2)}%',
+          trendPositive: isDayUp,
+        ),
+        StatCard(
+          label: 'TOTAL P&L',
+          value:
+              '${isTotalUp ? '+' : ''}₹${_fmt(portfolio.totalPnl.abs())}',
+          icon: isTotalUp
+              ? Icons.show_chart_rounded
+              : Icons.show_chart_rounded,
+          iconColor:
+              isTotalUp ? AppColors.gainColor(context) : AppColors.lossColor(context),
+          valueColor:
+              isTotalUp ? AppColors.gainColor(context) : AppColors.lossColor(context),
+          trend: '${isTotalUp ? '+' : ''}${portfolio.totalPnlPct.toStringAsFixed(1)}%',
+          trendPositive: isTotalUp,
+        ),
+        StatCard(
+          label: 'WIN RATE',
+          value: '67.6%',
+          icon: Icons.emoji_events_rounded,
+          iconColor: AppColors.warning,
+          subValue: '142 trades',
         ),
       ],
+    );
+  }
+
+  String _fmt(double v) {
+    if (v >= 100000) return '${(v / 100000).toStringAsFixed(2)}L';
+    return v.toStringAsFixed(0);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Portfolio Chart Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PortfolioChartCard extends StatelessWidget {
+  const _PortfolioChartCard({required this.portfolio});
+  final PortfolioState portfolio;
+
+  @override
+  Widget build(BuildContext context) {
+    return SinhaXCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Portfolio Performance',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text1(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Last 25 trading sessions',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.text2(context),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.gainSurface(context),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.trending_up_rounded,
+                        size: 13, color: AppColors.gainColor(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+${portfolio.totalPnlPct.toStringAsFixed(1)}%',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gainColor(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          LineChartWidget(
+            data: portfolio.performanceChart,
+            height: 200,
+            showGrid: true,
+            lineColor: AppColors.primary,
+            fillGradient: true,
+            labels: const [
+              'Jan', '', '', '', 'Feb', '', '', '', 'Mar',
+              '', '', '', 'Apr', '', '', '', 'May', '',
+              '', '', 'Jun', '', '', '', '',
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -897,83 +880,25 @@ class _StatsGrid extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _LivePricesCard extends StatelessWidget {
+  const _LivePricesCard({required this.quotes});
+  final List<StockQuote> quotes;
+
   @override
   Widget build(BuildContext context) {
     return SinhaXCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          // Column headers
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'Symbol',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textTertiary,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 70,
-                  child: Text(
-                    'Chart',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textTertiary,
-                      letterSpacing: 0.3,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 72,
-                  child: Text(
-                    'Price',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textTertiary,
-                      letterSpacing: 0.3,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 56,
-                  child: Text(
-                    'Chg%',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textTertiary,
-                      letterSpacing: 0.3,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.divider),
-          for (int i = 0; i < _liveStocks.length; i++) ...[
+          for (int i = 0; i < quotes.length; i++) ...[
             if (i > 0)
-              const Divider(
-                  height: 1,
-                  color: AppColors.divider,
-                  indent: 16,
-                  endIndent: 16),
-            _LiveStockRow(stock: _liveStocks[i]),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.borderColor(context),
+                indent: 16,
+                endIndent: 16,
+              ),
+            _StockRow(quote: quotes[i]),
           ],
         ],
       ),
@@ -981,83 +906,106 @@ class _LivePricesCard extends StatelessWidget {
   }
 }
 
-class _LiveStockRow extends StatelessWidget {
-  const _LiveStockRow({required this.stock});
-
-  final Map<String, dynamic> stock;
+class _StockRow extends StatelessWidget {
+  const _StockRow({required this.quote});
+  final StockQuote quote;
 
   @override
   Widget build(BuildContext context) {
-    final bool isUp = stock['up'] as bool;
-    final Color changeColor = isUp ? AppColors.success : AppColors.error;
-    final List<double> chartData = List<double>.from(stock['data'] as List);
+    final changeColor =
+        quote.isUp ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final sign = quote.changePct >= 0 ? '+' : '';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Symbol + name
+          // Symbol avatar
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurfaceColor(context),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              quote.symbol.substring(0, quote.symbol.length.clamp(0, 2)),
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Name + symbol
           Expanded(
-            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  stock['symbol'] as String,
+                  quote.symbol,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
-                  stock['name'] as String,
+                  quote.name,
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Mini sparkline
+          // Sparkline
           MiniSparkline(
-            data: chartData,
-            positive: isUp,
-            width: 70,
-            height: 36,
-            strokeWidth: 1.8,
-          ),
-          const SizedBox(width: 8),
-          // Price
-          SizedBox(
-            width: 72,
-            child: Text(
-              stock['price'] as String,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Change %
-          SizedBox(
+            data: quote.sparkline,
+            positive: quote.isUp,
             width: 56,
-            child: Text(
-              stock['change'] as String,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: changeColor,
+            height: 30,
+            strokeWidth: 1.6,
+            showFill: false,
+          ),
+          const SizedBox(width: 12),
+          // Price + change
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₹${quote.price.toStringAsFixed(2)}',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text1(context),
+                ),
               ),
-              textAlign: TextAlign.right,
-            ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: quote.isUp
+                      ? AppColors.gainSurface(context)
+                      : AppColors.lossSurfaceColor(context),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  '$sign${quote.changePct.toStringAsFixed(2)}%',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: changeColor,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1066,180 +1014,107 @@ class _LiveStockRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Market Movers Row (Top Gainer / Top Loser)
+// Market Movers Row
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MarketMoversRow extends StatelessWidget {
-  const _MarketMoversRow();
+  const _MarketMoversRow({required this.quotes});
+  final List<StockQuote> quotes;
 
   @override
   Widget build(BuildContext context) {
+    if (quotes.isEmpty) return const SizedBox.shrink();
+
+    final sorted = [...quotes]..sort((a, b) => b.changePct.compareTo(a.changePct));
+    final topGainer = sorted.first;
+    final topLoser = sorted.last;
+
     return Row(
       children: [
-        Expanded(
-          child: _MoverCard(
-            title: 'Top Gainer',
-            symbol: 'TATAMOTORS',
-            fullName: 'Tata Motors Ltd.',
-            price: '₹1,023.40',
-            change: '+4.87%',
-            volume: 'Vol: 2.3M',
-            isGainer: true,
-            chartData: const [
-              870, 882, 895, 910, 921, 940, 955, 970, 985, 1005, 1023
-            ],
-          ),
-        ),
+        Expanded(child: _MoverCard(quote: topGainer, isGainer: true)),
         const SizedBox(width: 12),
-        Expanded(
-          child: _MoverCard(
-            title: 'Top Loser',
-            symbol: 'BAJFINANCE',
-            fullName: 'Bajaj Finance Ltd.',
-            price: '₹6,421.70',
-            change: '-3.14%',
-            volume: 'Vol: 1.1M',
-            isGainer: false,
-            chartData: const [
-              6850, 6820, 6790, 6755, 6730, 6710, 6690, 6660, 6640, 6630, 6421
-            ],
-          ),
-        ),
+        Expanded(child: _MoverCard(quote: topLoser, isGainer: false)),
       ],
     );
   }
 }
 
 class _MoverCard extends StatelessWidget {
-  const _MoverCard({
-    required this.title,
-    required this.symbol,
-    required this.fullName,
-    required this.price,
-    required this.change,
-    required this.volume,
-    required this.isGainer,
-    required this.chartData,
-  });
-
-  final String title;
-  final String symbol;
-  final String fullName;
-  final String price;
-  final String change;
-  final String volume;
+  const _MoverCard({required this.quote, required this.isGainer});
+  final StockQuote quote;
   final bool isGainer;
-  final List<double> chartData;
 
   @override
   Widget build(BuildContext context) {
-    final Color accentColor = isGainer ? AppColors.success : AppColors.error;
-    final Color bgColor =
-        isGainer ? AppColors.successSurface : AppColors.errorSurface;
+    final color =
+        isGainer ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final surfaceColor =
+        isGainer ? AppColors.gainSurface(context) : AppColors.lossSurfaceColor(context);
+    final sign = quote.changePct >= 0 ? '+' : '';
 
     return SinhaXCard(
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isGainer
-                      ? Icons.arrow_drop_up_rounded
-                      : Icons.arrow_drop_down_rounded,
-                  size: 16,
-                  color: accentColor,
-                ),
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: accentColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Symbol
-          Text(
-            symbol,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.2,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            fullName,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: AppColors.textSecondary,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 10),
-
-          // Sparkline
-          MiniSparkline(
-            data: chartData,
-            positive: isGainer,
-            width: double.infinity,
-            height: 44,
-            strokeWidth: 2,
-          ),
-          const SizedBox(height: 10),
-
-          // Price row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                price,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isGainer ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                  color: color,
+                  size: 16,
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  change,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: accentColor,
-                  ),
+              const SizedBox(width: 8),
+              Text(
+                isGainer ? 'Top Gainer' : 'Top Loser',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text2(context),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Text(
+            quote.symbol,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.text1(context),
+              letterSpacing: -0.2,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
-            volume,
+            '₹${quote.price.toStringAsFixed(2)}',
             style: GoogleFonts.inter(
-              fontSize: 10,
-              color: AppColors.textTertiary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.text2(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$sign${quote.changePct.toStringAsFixed(2)}%',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],

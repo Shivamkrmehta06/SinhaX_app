@@ -1,214 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/providers/arbitrage_provider.dart';
 import '../../shared/widgets/mini_chart.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/sinhax_card.dart';
 import '../../shared/widgets/stat_card.dart';
 import '../../shared/widgets/status_chip.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Data Models
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ArbitrageOpportunity {
-  const _ArbitrageOpportunity({
-    required this.asset,
-    required this.exchangeA,
-    required this.exchangeB,
-    required this.priceA,
-    required this.priceB,
-    required this.spreadPct,
-    required this.expectedProfit,
-    required this.windowSeconds,
-    required this.sparkData,
-  });
-
-  final String asset;
-  final String exchangeA;
-  final String exchangeB;
-  final String priceA;
-  final String priceB;
-  final String spreadPct;
-  final String expectedProfit;
-  final int windowSeconds;
-  final List<double> sparkData;
-}
-
-class _ArbitrageStrategy {
-  const _ArbitrageStrategy({
-    required this.name,
-    required this.description,
-    required this.icon,
-    required this.color,
-    required this.active,
-  });
-
-  final String name;
-  final String description;
-  final IconData icon;
-  final Color color;
-  final bool active;
-}
-
-class _RecentTrade {
-  const _RecentTrade({
-    required this.asset,
-    required this.exchangePair,
-    required this.profit,
-    required this.timeAgo,
-    required this.status,
-  });
-
-  final String asset;
-  final String exchangePair;
-  final String profit;
-  final String timeAgo;
-  final StatusType status;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Static Data
-// ─────────────────────────────────────────────────────────────────────────────
-
-const List<_ArbitrageOpportunity> _opportunities = [
-  _ArbitrageOpportunity(
-    asset: 'BTC/USDT',
-    exchangeA: 'Binance',
-    exchangeB: 'Coinbase',
-    priceA: '\$67,842.10',
-    priceB: '\$68,021.50',
-    spreadPct: '+0.26%',
-    expectedProfit: '₹1,420',
-    windowSeconds: 47,
-    sparkData: [42, 45, 43, 48, 52, 50, 55, 58, 62, 65],
-  ),
-  _ArbitrageOpportunity(
-    asset: 'NIFTY50',
-    exchangeA: 'NSE',
-    exchangeB: 'BSE',
-    priceA: '₹24,512.00',
-    priceB: '₹24,578.75',
-    spreadPct: '+0.27%',
-    expectedProfit: '₹2,680',
-    windowSeconds: 23,
-    sparkData: [30, 35, 32, 38, 42, 40, 45, 48, 44, 50],
-  ),
-  _ArbitrageOpportunity(
-    asset: 'ETH/USDT',
-    exchangeA: 'Kraken',
-    exchangeB: 'OKX',
-    priceA: '\$3,521.80',
-    priceB: '\$3,534.45',
-    spreadPct: '+0.36%',
-    expectedProfit: '₹3,150',
-    windowSeconds: 61,
-    sparkData: [55, 52, 58, 60, 64, 62, 68, 70, 74, 72],
-  ),
-];
-
-const List<_ArbitrageStrategy> _strategies = [
-  _ArbitrageStrategy(
-    name: 'Statistical',
-    description: 'Mean-reversion between correlated pairs',
-    icon: Icons.bar_chart_rounded,
-    color: Color(0xFF6366F1),
-    active: true,
-  ),
-  _ArbitrageStrategy(
-    name: 'Triangular',
-    description: 'Cross-currency 3-leg opportunity loops',
-    icon: Icons.change_circle_rounded,
-    color: Color(0xFF0EA5E9),
-    active: true,
-  ),
-  _ArbitrageStrategy(
-    name: 'Exchange',
-    description: 'Price disparity across spot exchanges',
-    icon: Icons.swap_horiz_rounded,
-    color: Color(0xFF22C55E),
-    active: false,
-  ),
-  _ArbitrageStrategy(
-    name: 'ETF Arbitrage',
-    description: 'NAV vs market price divergence trades',
-    icon: Icons.account_balance_rounded,
-    color: Color(0xFFF59E0B),
-    active: true,
-  ),
-];
-
-const List<_RecentTrade> _recentTrades = [
-  _RecentTrade(
-    asset: 'BTC/USDT',
-    exchangePair: 'Binance → Bybit',
-    profit: '+₹4,820',
-    timeAgo: '2m ago',
-    status: StatusType.success,
-  ),
-  _RecentTrade(
-    asset: 'NIFTY50',
-    exchangePair: 'NSE → BSE',
-    profit: '+₹2,100',
-    timeAgo: '7m ago',
-    status: StatusType.success,
-  ),
-  _RecentTrade(
-    asset: 'ETH/USDT',
-    exchangePair: 'Kraken → OKX',
-    profit: '-₹320',
-    timeAgo: '15m ago',
-    status: StatusType.error,
-  ),
-  _RecentTrade(
-    asset: 'GOLD',
-    exchangePair: 'MCX → NCDEX',
-    profit: '+₹1,560',
-    timeAgo: '31m ago',
-    status: StatusType.success,
-  ),
-  _RecentTrade(
-    asset: 'SOL/USDT',
-    exchangePair: 'Coinbase → Binance',
-    profit: '+₹890',
-    timeAgo: '48m ago',
-    status: StatusType.success,
-  ),
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ArbitrageScreen
-// ─────────────────────────────────────────────────────────────────────────────
-
-class ArbitrageScreen extends StatefulWidget {
+class ArbitrageScreen extends ConsumerStatefulWidget {
   const ArbitrageScreen({super.key});
 
   @override
-  State<ArbitrageScreen> createState() => _ArbitrageScreenState();
+  ConsumerState<ArbitrageScreen> createState() => _ArbitrageScreenState();
 }
 
-class _ArbitrageScreenState extends State<ArbitrageScreen> {
-  // Track toggle states for strategies (index → active)
-  final Map<int, bool> _strategyToggles = {
-    0: _strategies[0].active,
-    1: _strategies[1].active,
-    2: _strategies[2].active,
-    3: _strategies[3].active,
-  };
-
+class _ArbitrageScreenState extends ConsumerState<ArbitrageScreen> {
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(arbitrageProvider);
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
+      backgroundColor: AppColors.bg(context),
+      appBar: _buildAppBar(context),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(child: _buildSubtitleBanner()),
-          SliverToBoxAdapter(child: _buildStatsGrid()),
-          SliverToBoxAdapter(child: _buildLiveOpportunitiesSection()),
-          SliverToBoxAdapter(child: _buildStrategiesSection()),
-          SliverToBoxAdapter(child: _buildRecentTradesSection()),
+          SliverToBoxAdapter(child: _buildSubtitleBanner(context)),
+          SliverToBoxAdapter(child: _buildStatsGrid(context)),
+          SliverToBoxAdapter(child: _buildLiveOpportunitiesSection(context, state.opportunities)),
+          SliverToBoxAdapter(child: _buildStrategiesSection(context, state.strategies)),
+          SliverToBoxAdapter(child: _buildRecentTradesSection(context, state.recentTrades)),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
@@ -217,20 +40,20 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 
   // ── AppBar ──────────────────────────────────────────────────────────────────
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.card(context),
       elevation: 0,
       centerTitle: false,
       scrolledUnderElevation: 1,
-      shadowColor: AppColors.border,
+      shadowColor: AppColors.borderColor(context),
       titleSpacing: 20,
       title: Text(
         'Arbitrage',
         style: GoogleFonts.inter(
           fontSize: 22,
           fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary,
+          color: AppColors.text1(context),
           letterSpacing: -0.5,
         ),
       ),
@@ -238,7 +61,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
         Container(
           margin: const EdgeInsets.only(right: 16),
           decoration: BoxDecoration(
-            color: AppColors.primarySurface,
+            color: AppColors.primarySurfaceColor(context),
             borderRadius: BorderRadius.circular(10),
           ),
           child: IconButton(
@@ -254,9 +77,9 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 
   // ── Subtitle Banner ─────────────────────────────────────────────────────────
 
-  Widget _buildSubtitleBanner() {
+  Widget _buildSubtitleBanner(BuildContext context) {
     return Container(
-      color: AppColors.white,
+      color: AppColors.card(context),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Row(
         children: [
@@ -283,7 +106,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -302,7 +125,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 
   // ── Stats 2×2 Grid ──────────────────────────────────────────────────────────
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: GridView.count(
@@ -355,7 +178,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 
   // ── Live Opportunities ──────────────────────────────────────────────────────
 
-  Widget _buildLiveOpportunitiesSection() {
+  Widget _buildLiveOpportunitiesSection(BuildContext context, List<ArbitrageOpportunity> opportunities) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: Column(
@@ -363,28 +186,28 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
         children: [
           SectionHeader(
             title: 'Live Opportunities',
-            subtitle: '${_opportunities.length} active • refreshes every 5s',
+            subtitle: '${opportunities.length} active • refreshes every 5s',
             action: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.successSurface,
+                color: AppColors.gainSurface(context),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColors.success.withValues(alpha: 0.3), width: 1),
+                    color: AppColors.gainColor(context).withValues(alpha: 0.3), width: 1),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.flash_on_rounded,
-                      size: 13, color: AppColors.success),
+                  Icon(Icons.flash_on_rounded,
+                      size: 13, color: AppColors.gainColor(context)),
                   const SizedBox(width: 4),
                   Text(
                     'AI Active',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.success,
+                      color: AppColors.gainColor(context),
                     ),
                   ),
                 ],
@@ -401,11 +224,11 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.2),
+                    color: AppColors.gainColor(context).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.bolt_rounded,
-                      color: AppColors.success, size: 22),
+                  child: Icon(Icons.bolt_rounded,
+                      color: AppColors.gainColor(context), size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -432,20 +255,20 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const LiveStatusIndicator(
+                LiveStatusIndicator(
                   label: 'LIVE',
-                  color: AppColors.success,
+                  color: AppColors.gainColor(context),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
           // Opportunity cards
-          ...List.generate(_opportunities.length, (i) {
+          ...List.generate(opportunities.length, (i) {
             return Padding(
               padding: EdgeInsets.only(
-                  bottom: i < _opportunities.length - 1 ? 12 : 0),
-              child: _OpportunityCard(opportunity: _opportunities[i]),
+                  bottom: i < opportunities.length - 1 ? 12 : 0),
+              child: _OpportunityCard(opportunity: opportunities[i]),
             );
           }),
         ],
@@ -455,7 +278,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 
   // ── Strategies Grid ─────────────────────────────────────────────────────────
 
-  Widget _buildStrategiesSection() {
+  Widget _buildStrategiesSection(BuildContext context, List<ArbitrageStrategy> strategies) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
       child: Column(
@@ -469,7 +292,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _strategies.length,
+            itemCount: strategies.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
@@ -477,13 +300,12 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
               childAspectRatio: 1.15,
             ),
             itemBuilder: (context, index) {
-              final strategy = _strategies[index];
-              final isActive = _strategyToggles[index] ?? strategy.active;
+              final strategy = strategies[index];
               return _StrategyCard(
                 strategy: strategy,
-                isActive: isActive,
+                isActive: strategy.active,
                 onToggle: (val) {
-                  setState(() => _strategyToggles[index] = val);
+                  ref.read(arbitrageProvider.notifier).toggleStrategy(index, val);
                 },
               );
             },
@@ -495,7 +317,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 
   // ── Recent Trades ───────────────────────────────────────────────────────────
 
-  Widget _buildRecentTradesSection() {
+  Widget _buildRecentTradesSection(BuildContext context, List<RecentTrade> recentTrades) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
       child: Column(
@@ -509,10 +331,10 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
           SinhaXCard(
             padding: EdgeInsets.zero,
             child: Column(
-              children: List.generate(_recentTrades.length, (i) {
+              children: List.generate(recentTrades.length, (i) {
                 return _RecentTradeRow(
-                  trade: _recentTrades[i],
-                  isLast: i == _recentTrades.length - 1,
+                  trade: recentTrades[i],
+                  isLast: i == recentTrades.length - 1,
                 );
               }),
             ),
@@ -529,9 +351,9 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: AppColors.card(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
@@ -543,7 +365,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.borderColor(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -554,7 +376,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
             const SizedBox(height: 12),
@@ -562,14 +384,14 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
               'SinhaX AI continuously monitors price discrepancies across 12+ exchanges in real time. When a profitable spread is detected within your risk tolerance, the system alerts you and optionally executes the trade automatically.',
               style: GoogleFonts.inter(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: AppColors.text2(context),
                 height: 1.6,
               ),
             ),
             const SizedBox(height: 16),
             _InfoRow(
               icon: Icons.shield_rounded,
-              color: AppColors.success,
+              color: AppColors.gainColor(context),
               title: 'Risk-Managed',
               subtitle: 'Position sizing auto-adjusted to your risk profile',
             ),
@@ -581,7 +403,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
               subtitle: 'Execution under 50ms for time-sensitive windows',
             ),
             const SizedBox(height: 12),
-            _InfoRow(
+            const _InfoRow(
               icon: Icons.account_tree_rounded,
               color: Color(0xFF6366F1),
               title: 'Multi-Strategy',
@@ -601,7 +423,7 @@ class _ArbitrageScreenState extends State<ArbitrageScreen> {
 class _OpportunityCard extends StatelessWidget {
   const _OpportunityCard({required this.opportunity});
 
-  final _ArbitrageOpportunity opportunity;
+  final ArbitrageOpportunity opportunity;
 
   @override
   Widget build(BuildContext context) {
@@ -626,7 +448,7 @@ class _OpportunityCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: AppColors.text1(context),
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -644,7 +466,7 @@ class _OpportunityCard extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Icon(Icons.arrow_forward_rounded,
-                              size: 11, color: AppColors.textTertiary),
+                              size: 11, color: AppColors.text3(context)),
                         ),
                         Text(
                           opportunity.exchangeB,
@@ -664,7 +486,7 @@ class _OpportunityCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.12),
+                  color: AppColors.gainColor(context).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -672,7 +494,7 @@ class _OpportunityCard extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.success,
+                    color: AppColors.gainColor(context),
                   ),
                 ),
               ),
@@ -683,7 +505,7 @@ class _OpportunityCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.bg(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -698,7 +520,7 @@ class _OpportunityCard extends StatelessWidget {
                 Container(
                   width: 1,
                   height: 36,
-                  color: AppColors.border,
+                  color: AppColors.borderColor(context),
                 ),
                 Expanded(
                   child: _PriceCell(
@@ -721,7 +543,7 @@ class _OpportunityCard extends StatelessWidget {
                   Text(
                     'Expected Profit',
                     style: GoogleFonts.inter(
-                        fontSize: 10, color: AppColors.textTertiary),
+                        fontSize: 10, color: AppColors.text3(context)),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -729,7 +551,7 @@ class _OpportunityCard extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.success,
+                      color: AppColors.gainColor(context),
                     ),
                   ),
                 ],
@@ -741,7 +563,7 @@ class _OpportunityCard extends StatelessWidget {
                   Text(
                     'Window',
                     style: GoogleFonts.inter(
-                        fontSize: 10, color: AppColors.textTertiary),
+                        fontSize: 10, color: AppColors.text3(context)),
                   ),
                   const SizedBox(height: 2),
                   _CountdownBadge(seconds: opportunity.windowSeconds),
@@ -855,7 +677,7 @@ class _PriceCell extends StatelessWidget {
             '$label $exchange',
             style: GoogleFonts.inter(
               fontSize: 10,
-              color: AppColors.textTertiary,
+              color: AppColors.text3(context),
             ),
           ),
           const SizedBox(height: 3),
@@ -864,7 +686,7 @@ class _PriceCell extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.text1(context),
               letterSpacing: -0.2,
             ),
           ),
@@ -883,10 +705,10 @@ class _CountdownBadge extends StatelessWidget {
 
   final int seconds;
 
-  Color get _urgencyColor {
-    if (seconds < 30) return AppColors.error;
+  Color _urgencyColor(BuildContext context) {
+    if (seconds < 30) return AppColors.lossColor(context);
     if (seconds < 60) return AppColors.warning;
-    return AppColors.success;
+    return AppColors.gainColor(context);
   }
 
   @override
@@ -894,14 +716,14 @@ class _CountdownBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.timer_rounded, size: 13, color: _urgencyColor),
+        Icon(Icons.timer_rounded, size: 13, color: _urgencyColor(context)),
         const SizedBox(width: 3),
         Text(
           '${seconds}s',
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: _urgencyColor,
+            color: _urgencyColor(context),
           ),
         ),
       ],
@@ -966,13 +788,13 @@ class _AutoExecuteButton extends StatelessWidget {
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.card(context),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primarySurface,
+                color: AppColors.primarySurfaceColor(context),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.flash_on_rounded,
@@ -984,7 +806,7 @@ class _AutoExecuteButton extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w800,
                 fontSize: 17,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
           ],
@@ -993,7 +815,7 @@ class _AutoExecuteButton extends StatelessWidget {
           'Execute arbitrage trade for $asset now?\nAI has verified this opportunity with 94.2% confidence.',
           style: GoogleFonts.inter(
             fontSize: 13,
-            color: AppColors.textSecondary,
+            color: AppColors.text2(context),
             height: 1.5,
           ),
         ),
@@ -1004,7 +826,7 @@ class _AutoExecuteButton extends StatelessWidget {
               'Cancel',
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: AppColors.text2(context),
               ),
             ),
           ),
@@ -1039,7 +861,7 @@ class _StrategyCard extends StatelessWidget {
     required this.onToggle,
   });
 
-  final _ArbitrageStrategy strategy;
+  final ArbitrageStrategy strategy;
   final bool isActive;
   final ValueChanged<bool> onToggle;
 
@@ -1087,7 +909,7 @@ class _StrategyCard extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1097,7 +919,7 @@ class _StrategyCard extends StatelessWidget {
                 strategy.description,
                 style: GoogleFonts.inter(
                   fontSize: 10,
-                  color: AppColors.textSecondary,
+                  color: AppColors.text2(context),
                   height: 1.4,
                 ),
                 maxLines: 2,
@@ -1110,7 +932,7 @@ class _StrategyCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isActive
                       ? strategy.color.withValues(alpha: 0.1)
-                      : AppColors.background,
+                      : AppColors.bg(context),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -1119,7 +941,7 @@ class _StrategyCard extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color:
-                        isActive ? strategy.color : AppColors.textTertiary,
+                        isActive ? strategy.color : AppColors.text3(context),
                   ),
                 ),
               ),
@@ -1141,7 +963,7 @@ class _RecentTradeRow extends StatelessWidget {
     required this.isLast,
   });
 
-  final _RecentTrade trade;
+  final RecentTrade trade;
   final bool isLast;
 
   @override
@@ -1159,15 +981,15 @@ class _RecentTradeRow extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: isProfit
-                      ? AppColors.successSurface
-                      : AppColors.errorSurface,
+                      ? AppColors.gainSurface(context)
+                      : AppColors.lossSurfaceColor(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   isProfit
                       ? Icons.trending_up_rounded
                       : Icons.trending_down_rounded,
-                  color: isProfit ? AppColors.success : AppColors.error,
+                  color: isProfit ? AppColors.gainColor(context) : AppColors.lossColor(context),
                   size: 20,
                 ),
               ),
@@ -1182,7 +1004,7 @@ class _RecentTradeRow extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: AppColors.text1(context),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1190,7 +1012,7 @@ class _RecentTradeRow extends StatelessWidget {
                       trade.exchangePair,
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: AppColors.text2(context),
                       ),
                     ),
                   ],
@@ -1206,7 +1028,7 @@ class _RecentTradeRow extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color:
-                          isProfit ? AppColors.success : AppColors.error,
+                          isProfit ? AppColors.gainColor(context) : AppColors.lossColor(context),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1216,7 +1038,7 @@ class _RecentTradeRow extends StatelessWidget {
                         trade.timeAgo,
                         style: GoogleFonts.inter(
                           fontSize: 10,
-                          color: AppColors.textTertiary,
+                          color: AppColors.text3(context),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -1236,12 +1058,12 @@ class _RecentTradeRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(
+          Divider(
             height: 1,
             thickness: 1,
             indent: 66,
             endIndent: 16,
-            color: AppColors.divider,
+            color: AppColors.borderColor(context),
           ),
       ],
     );
@@ -1287,14 +1109,14 @@ class _InfoRow extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               Text(
                 subtitle,
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: AppColors.text2(context),
                 ),
               ),
             ],

@@ -1,55 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sinhax_mobile/core/constants/app_constants.dart';
-import 'package:sinhax_mobile/core/theme/app_theme.dart';
-import 'package:sinhax_mobile/features/splash/splash_screen.dart';
-import 'package:sinhax_mobile/features/landing/landing_screen.dart';
-import 'package:sinhax_mobile/features/auth/login_screen.dart';
-import 'package:sinhax_mobile/features/auth/market_selection_screen.dart';
-import 'package:sinhax_mobile/features/home/home_shell.dart';
-import 'package:sinhax_mobile/features/markets/markets_screen.dart';
-import 'package:sinhax_mobile/features/screener/screener_screen.dart';
-import 'package:sinhax_mobile/features/arbitrage/arbitrage_screen.dart';
-import 'package:sinhax_mobile/features/backtest/backtest_screen.dart';
-import 'package:sinhax_mobile/features/settings/settings_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/app_theme.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/router/app_router.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([
+
+  // Lock to portrait
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
+
+  // Create container and load persisted theme before first frame
+  final container = ProviderContainer();
+  await container.read(themeProvider.notifier).init();
+
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const SinhaXApp(),
     ),
   );
-  runApp(const SinhaXApp());
 }
 
-class SinhaXApp extends StatelessWidget {
+class SinhaXApp extends ConsumerWidget {
   const SinhaXApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+
+    // Set system UI overlay style based on resolved brightness
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.dark);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      isDark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: const Color(0xFF111428),
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.white,
+            ),
+    );
+
+    return MaterialApp.router(
+      title: 'SinhaX',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/splash',
-      routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/landing': (context) => const LandingScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/market-selection': (context) => const MarketSelectionScreen(),
-        '/home': (context) => const HomeShell(),
-        '/markets': (context) => const MarketsScreen(),
-        '/screener': (context) => const ScreenerScreen(),
-        '/arbitrage': (context) => const ArbitrageScreen(),
-        '/backtest': (context) => const BacktestScreen(),
-        '/settings': (context) => const SettingsScreen(),
-      },
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      routerConfig: appRouter,
     );
   }
 }

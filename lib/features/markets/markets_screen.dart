@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/mini_chart.dart';
@@ -174,11 +175,11 @@ class _MarketsScreenState extends State<MarketsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
+      backgroundColor: AppColors.bg(context),
+      appBar: _buildAppBar(context),
       body: Column(
         children: [
-          _buildTabBar(),
+          _buildTabBar(context),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -194,24 +195,31 @@ class _MarketsScreenState extends State<MarketsScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.card(context),
       elevation: 0,
       surfaceTintColor: Colors.transparent,
-      titleSpacing: 20,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back_ios_new_rounded,
+            color: AppColors.text1(context), size: 20),
+        onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/home'); } },
+        tooltip: 'Back',
+      ),
+      titleSpacing: 4,
       title: Text(
         'Markets',
         style: GoogleFonts.inter(
           fontSize: 22,
           fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+          color: AppColors.text1(context),
         ),
       ),
       actions: [
         IconButton(
           onPressed: () {},
-          icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 24),
+          icon: Icon(Icons.search_rounded,
+              color: AppColors.text1(context), size: 24),
           tooltip: 'Search',
         ),
         IconButton(
@@ -220,10 +228,11 @@ class _MarketsScreenState extends State<MarketsScreen>
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.primarySurface,
+              color: AppColors.primarySurfaceColor(context),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 18),
+            child: const Icon(Icons.tune_rounded,
+                color: AppColors.primary, size: 18),
           ),
           tooltip: 'Filter',
         ),
@@ -231,18 +240,19 @@ class _MarketsScreenState extends State<MarketsScreen>
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: AppColors.border),
+        child:
+            Container(height: 1, color: AppColors.borderColor(context)),
       ),
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(BuildContext context) {
     return Container(
-      color: AppColors.white,
+      color: AppColors.card(context),
       child: TabBar(
         controller: _tabController,
         labelColor: AppColors.primary,
-        unselectedLabelColor: AppColors.textSecondary,
+        unselectedLabelColor: AppColors.text2(context),
         indicatorColor: AppColors.primary,
         indicatorWeight: 2.5,
         indicatorSize: TabBarIndicatorSize.label,
@@ -282,7 +292,7 @@ class _IndianMarketTab extends StatelessWidget {
           subtitle: 'Total Traded Value · ₹58,432 Cr',
           statusLabel: 'Market Open',
           statusType: StatusType.success,
-          gradientColors: AppColors.heroGradient,
+          gradientColors: AppColors.heroGradient(context),
           icon: Icons.trending_up_rounded,
           stats: const [
             _BannerStat(label: 'Advances', value: '1,842'),
@@ -410,7 +420,7 @@ class _CryptoMarketTab extends StatelessWidget {
               _StockGridCard(data: _cryptoGainers[index]),
         ),
         const SizedBox(height: 24),
-        _CryptoMarketSentiment(),
+        const _CryptoMarketSentiment(),
         const SizedBox(height: 16),
       ],
     );
@@ -469,7 +479,7 @@ class _ForexMarketTab extends StatelessWidget {
           );
         }),
         const SizedBox(height: 24),
-        _ForexHeatmapCard(),
+        const _ForexHeatmapCard(),
         const SizedBox(height: 16),
       ],
     );
@@ -534,7 +544,6 @@ class _MarketBanner extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Background circle decoration
           Positioned(
             right: -20,
             top: -20,
@@ -600,11 +609,13 @@ class _MarketBanner extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: _statusBg.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -639,7 +650,8 @@ class _MarketBanner extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: stats.map((s) => _BannerStatWidget(stat: s)).toList(),
+                  children:
+                      stats.map((s) => _BannerStatWidget(stat: s)).toList(),
                 ),
               ],
             ),
@@ -688,10 +700,14 @@ class _IndexCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = data.changePct >= 0;
-    final changeColor = isPositive ? AppColors.success : AppColors.error;
-    final changeBg = isPositive ? AppColors.successSurface : AppColors.errorSurface;
+    final changeColor =
+        isPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final changeBg = isPositive
+        ? AppColors.gainSurface(context)
+        : AppColors.lossSurfaceColor(context);
 
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.all(14),
       elevation: 1,
       child: SizedBox(
@@ -707,13 +723,14 @@ class _IndexCard extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: AppColors.text2(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: changeBg,
                     borderRadius: BorderRadius.circular(4),
@@ -735,7 +752,7 @@ class _IndexCard extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
             const SizedBox(height: 2),
@@ -771,10 +788,14 @@ class _StockGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = data.changePct >= 0;
-    final changeColor = isPositive ? AppColors.success : AppColors.error;
-    final changeBg = isPositive ? AppColors.successSurface : AppColors.errorSurface;
+    final changeColor =
+        isPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final changeBg = isPositive
+        ? AppColors.gainSurface(context)
+        : AppColors.lossSurfaceColor(context);
 
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.all(12),
       elevation: 1,
       onTap: () {},
@@ -787,12 +808,13 @@ class _StockGridCard extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
+                  color: AppColors.primarySurfaceColor(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    data.ticker.substring(0, data.ticker.length > 2 ? 2 : data.ticker.length),
+                    data.ticker.substring(
+                        0, data.ticker.length > 2 ? 2 : data.ticker.length),
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -817,7 +839,7 @@ class _StockGridCard extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.text1(context),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -826,7 +848,7 @@ class _StockGridCard extends StatelessWidget {
             data.name,
             style: GoogleFonts.inter(
               fontSize: 10,
-              color: AppColors.textSecondary,
+              color: AppColors.text2(context),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -839,11 +861,12 @@ class _StockGridCard extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: changeBg,
                   borderRadius: BorderRadius.circular(4),
@@ -864,7 +887,7 @@ class _StockGridCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.divider,
+                color: AppColors.cardAlt(context),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -872,7 +895,7 @@ class _StockGridCard extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+                  color: AppColors.text2(context),
                 ),
               ),
             ),
@@ -893,21 +916,26 @@ class _StockListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = data.changePct >= 0;
-    final changeColor = isPositive ? AppColors.success : AppColors.error;
-    final changeBg = isPositive ? AppColors.successSurface : AppColors.errorSurface;
+    final changeColor =
+        isPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final changeBg = isPositive
+        ? AppColors.gainSurface(context)
+        : AppColors.lossSurfaceColor(context);
 
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       elevation: 1,
       onTap: () {},
       child: Row(
         children: [
-          // Rank badge
           Container(
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: rank <= 3 ? AppColors.primarySurface : AppColors.divider,
+              color: rank <= 3
+                  ? AppColors.primarySurfaceColor(context)
+                  : AppColors.cardAlt(context),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Center(
@@ -916,13 +944,14 @@ class _StockListTile extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: rank <= 3 ? AppColors.primary : AppColors.textSecondary,
+                  color: rank <= 3
+                      ? AppColors.primary
+                      : AppColors.text2(context),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          // Name & ticker
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,7 +961,7 @@ class _StockListTile extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -940,13 +969,12 @@ class _StockListTile extends StatelessWidget {
                   data.ticker,
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: AppColors.text2(context),
                   ),
                 ),
               ],
             ),
           ),
-          // Sparkline
           MiniSparkline(
             data: data.sparkline,
             positive: isPositive,
@@ -954,7 +982,6 @@ class _StockListTile extends StatelessWidget {
             height: 30,
           ),
           const SizedBox(width: 12),
-          // Price & change
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -963,12 +990,13 @@ class _StockListTile extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: changeBg,
                   borderRadius: BorderRadius.circular(5),
@@ -999,10 +1027,12 @@ class _CryptoHorizontalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = data.changePct >= 0;
-    final changeColor = isPositive ? AppColors.success : AppColors.error;
-    final changeBg = isPositive ? AppColors.successSurface : AppColors.errorSurface;
+    final changeColor =
+        isPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final changeBg = isPositive
+        ? AppColors.gainSurface(context)
+        : AppColors.lossSurfaceColor(context);
 
-    // Crypto icon colors
     final iconColors = {
       'BTC/USDT': const Color(0xFFF7931A),
       'ETH/USDT': const Color(0xFF627EEA),
@@ -1012,6 +1042,7 @@ class _CryptoHorizontalCard extends StatelessWidget {
     final iconColor = iconColors[data.ticker] ?? AppColors.primary;
 
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.all(14),
       elevation: 1,
       child: SizedBox(
@@ -1030,7 +1061,11 @@ class _CryptoHorizontalCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      data.ticker.split('/').first.substring(0, data.ticker.split('/').first.length > 3 ? 3 : data.ticker.split('/').first.length),
+                      data.ticker.split('/').first.substring(
+                          0,
+                          data.ticker.split('/').first.length > 3
+                              ? 3
+                              : data.ticker.split('/').first.length),
                       style: GoogleFonts.inter(
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
@@ -1041,7 +1076,8 @@ class _CryptoHorizontalCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: changeBg,
                     borderRadius: BorderRadius.circular(4),
@@ -1063,7 +1099,7 @@ class _CryptoHorizontalCard extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
             const SizedBox(height: 1),
@@ -1071,7 +1107,7 @@ class _CryptoHorizontalCard extends StatelessWidget {
               data.ticker,
               style: GoogleFonts.inter(
                 fontSize: 10,
-                color: AppColors.textSecondary,
+                color: AppColors.text2(context),
               ),
             ),
             const Spacer(),
@@ -1080,7 +1116,7 @@ class _CryptoHorizontalCard extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: AppColors.text1(context),
               ),
             ),
             const SizedBox(height: 4),
@@ -1106,6 +1142,7 @@ class _CryptoMarketSentiment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.all(16),
       elevation: 1,
       child: Column(
@@ -1113,29 +1150,38 @@ class _CryptoMarketSentiment extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.psychology_rounded, color: AppColors.primary, size: 18),
+              Icon(Icons.psychology_rounded,
+                  color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
               Text(
                 'Market Sentiment',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               const Spacer(),
-              StatusChip(label: 'Greed', type: StatusType.warning),
+              const StatusChip(
+                  label: 'Greed',
+                  type: StatusType.warning),
             ],
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
-                child: _SentimentBar(label: 'Fear', value: 0.32, color: AppColors.error),
+                child: _SentimentBar(
+                    label: 'Fear',
+                    value: 0.32,
+                    color: AppColors.lossColor(context)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _SentimentBar(label: 'Greed', value: 0.68, color: AppColors.success),
+                child: _SentimentBar(
+                    label: 'Greed',
+                    value: 0.68,
+                    color: AppColors.gainColor(context)),
               ),
             ],
           ),
@@ -1143,9 +1189,9 @@ class _CryptoMarketSentiment extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _SentimentStat(label: 'Fear & Greed Index', value: '68'),
-              _SentimentStat(label: 'Yesterday', value: '64'),
-              _SentimentStat(label: 'Last Week', value: '55'),
+              _SentimentStat(label: 'Fear & Greed Index', value: '68', context: context),
+              _SentimentStat(label: 'Yesterday', value: '64', context: context),
+              _SentimentStat(label: 'Last Week', value: '55', context: context),
             ],
           ),
         ],
@@ -1176,7 +1222,7 @@ class _SentimentBar extends StatelessWidget {
               label,
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color: AppColors.textSecondary,
+                color: AppColors.text2(context),
               ),
             ),
             Text(
@@ -1205,12 +1251,18 @@ class _SentimentBar extends StatelessWidget {
 }
 
 class _SentimentStat extends StatelessWidget {
-  const _SentimentStat({required this.label, required this.value});
+  const _SentimentStat({
+    required this.label,
+    required this.value,
+    required this.context,
+  });
   final String label;
   final String value;
+  // ignore: unused_field
+  final BuildContext context;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
     return Column(
       children: [
         Text(
@@ -1218,7 +1270,7 @@ class _SentimentStat extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+            color: AppColors.text1(ctx),
           ),
         ),
         const SizedBox(height: 2),
@@ -1226,7 +1278,7 @@ class _SentimentStat extends StatelessWidget {
           label,
           style: GoogleFonts.inter(
             fontSize: 10,
-            color: AppColors.textSecondary,
+            color: AppColors.text2(ctx),
           ),
           textAlign: TextAlign.center,
         ),
@@ -1244,21 +1296,26 @@ class _ForexListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = data.changePct >= 0;
-    final changeColor = isPositive ? AppColors.success : AppColors.error;
-    final changeBg = isPositive ? AppColors.successSurface : AppColors.errorSurface;
+    final changeColor =
+        isPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final changeBg = isPositive
+        ? AppColors.gainSurface(context)
+        : AppColors.lossSurfaceColor(context);
 
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       elevation: 1,
       onTap: () {},
       child: Row(
         children: [
-          // Flag pair
           Row(
             children: [
-              Text(data.flag1, style: const TextStyle(fontSize: 22)),
+              Text(data.flag1,
+                  style: const TextStyle(fontSize: 22)),
               const SizedBox(width: 4),
-              Text(data.flag2, style: const TextStyle(fontSize: 22)),
+              Text(data.flag2,
+                  style: const TextStyle(fontSize: 22)),
             ],
           ),
           const SizedBox(width: 12),
@@ -1271,7 +1328,7 @@ class _ForexListTile extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1301,12 +1358,13 @@ class _ForexListTile extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: changeBg,
                   borderRadius: BorderRadius.circular(5),
@@ -1337,8 +1395,11 @@ class _CommodityListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = data.changePct >= 0;
-    final changeColor = isPositive ? AppColors.success : AppColors.error;
-    final changeBg = isPositive ? AppColors.successSurface : AppColors.errorSurface;
+    final changeColor =
+        isPositive ? AppColors.gainColor(context) : AppColors.lossColor(context);
+    final changeBg = isPositive
+        ? AppColors.gainSurface(context)
+        : AppColors.lossSurfaceColor(context);
 
     final iconColor = switch (data.name) {
       'Gold' => const Color(0xFFD97706),
@@ -1347,6 +1408,7 @@ class _CommodityListTile extends StatelessWidget {
     };
 
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       elevation: 1,
       onTap: () {},
@@ -1371,7 +1433,7 @@ class _CommodityListTile extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.text1(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1401,12 +1463,13 @@ class _CommodityListTile extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: changeBg,
                   borderRadius: BorderRadius.circular(5),
@@ -1436,34 +1499,36 @@ class _ForexHeatmapCard extends StatelessWidget {
   static const _currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'];
 
   static const _matrix = [
-    // USD  EUR   GBP   JPY   AUD   CAD
-    [0.00, -0.12, 0.04, 0.31, -0.19, 0.08],   // USD
-    [0.12, 0.00, 0.16, 0.43, -0.07, 0.20],    // EUR
-    [-0.04, -0.16, 0.00, 0.27, -0.23, 0.04],  // GBP
-    [-0.31, -0.43, -0.27, 0.00, -0.50, -0.23], // JPY
-    [0.19, 0.07, 0.23, 0.50, 0.00, 0.27],     // AUD
-    [-0.08, -0.20, -0.04, 0.23, -0.27, 0.00], // CAD
+    [0.00, -0.12, 0.04, 0.31, -0.19, 0.08],
+    [0.12, 0.00, 0.16, 0.43, -0.07, 0.20],
+    [-0.04, -0.16, 0.00, 0.27, -0.23, 0.04],
+    [-0.31, -0.43, -0.27, 0.00, -0.50, -0.23],
+    [0.19, 0.07, 0.23, 0.50, 0.00, 0.27],
+    [-0.08, -0.20, -0.04, 0.23, -0.27, 0.00],
   ];
 
-  Color _cellColor(double val) {
-    if (val == 0.00) return AppColors.divider;
-    if (val > 0.3) return AppColors.success.withValues(alpha: 0.8);
-    if (val > 0.1) return AppColors.success.withValues(alpha: 0.45);
-    if (val > 0) return AppColors.success.withValues(alpha: 0.2);
-    if (val < -0.3) return AppColors.error.withValues(alpha: 0.8);
-    if (val < -0.1) return AppColors.error.withValues(alpha: 0.45);
-    return AppColors.error.withValues(alpha: 0.2);
+  Color _cellColor(double val, BuildContext context) {
+    if (val == 0.00) return AppColors.cardAlt(context);
+    if (val > 0.3) return AppColors.gainColor(context).withValues(alpha: 0.8);
+    if (val > 0.1) return AppColors.gainColor(context).withValues(alpha: 0.45);
+    if (val > 0) return AppColors.gainColor(context).withValues(alpha: 0.2);
+    if (val < -0.3) return AppColors.lossColor(context).withValues(alpha: 0.8);
+    if (val < -0.1) return AppColors.lossColor(context).withValues(alpha: 0.45);
+    return AppColors.lossColor(context).withValues(alpha: 0.2);
   }
 
-  Color _textColor(double val) {
-    if (val == 0.00) return AppColors.textTertiary;
+  Color _textColor(double val, BuildContext context) {
+    if (val == 0.00) return AppColors.text3(context);
     if (val.abs() > 0.3) return Colors.white;
-    return val > 0 ? AppColors.success : AppColors.error;
+    return val > 0
+        ? AppColors.gainColor(context)
+        : AppColors.lossColor(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return SinhaXCard(
+      color: AppColors.card(context),
       padding: const EdgeInsets.all(16),
       elevation: 1,
       child: Column(
@@ -1471,22 +1536,25 @@ class _ForexHeatmapCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.grid_view_rounded, color: AppColors.primary, size: 18),
+              Icon(Icons.grid_view_rounded,
+                  color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
               Text(
                 'Currency Heatmap',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text1(context),
                 ),
               ),
               const Spacer(),
-              const StatusChip(label: 'Live', type: StatusType.success, compact: true),
+              const StatusChip(
+                  label: 'Live',
+                  type: StatusType.success,
+                  compact: true),
             ],
           ),
           const SizedBox(height: 14),
-          // Header row
           Row(
             children: [
               const SizedBox(width: 36),
@@ -1498,7 +1566,7 @@ class _ForexHeatmapCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
+                        color: AppColors.text2(context),
                       ),
                     ),
                   ),
@@ -1507,7 +1575,6 @@ class _ForexHeatmapCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          // Grid rows
           ...List.generate(_currencies.length, (row) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -1520,7 +1587,7 @@ class _ForexHeatmapCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
+                        color: AppColors.text2(context),
                       ),
                     ),
                   ),
@@ -1529,9 +1596,10 @@ class _ForexHeatmapCard extends StatelessWidget {
                     return Expanded(
                       child: Container(
                         height: 32,
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        margin:
+                            const EdgeInsets.symmetric(horizontal: 1),
                         decoration: BoxDecoration(
-                          color: _cellColor(val),
+                          color: _cellColor(val, context),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Center(
@@ -1542,7 +1610,7 @@ class _ForexHeatmapCard extends StatelessWidget {
                                   style: GoogleFonts.inter(
                                     fontSize: 7,
                                     fontWeight: FontWeight.w700,
-                                    color: _textColor(val),
+                                    color: _textColor(val, context),
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
